@@ -39,7 +39,7 @@ class DDBUserRepository(UserRepository):
                         "Put": {
                             "TableName": self.table_name,
                             "Item": {
-                                "pk": f"USER#{user.id}",
+                                "pk": f"User#{user.id}",
                                 "sk": "PROFILE",
                                 "id": user.id,
                                 "email": user.email,
@@ -57,7 +57,7 @@ class DDBUserRepository(UserRepository):
                         "Put": {
                             "TableName": self.table_name,
                             "Item": {
-                                "pk": f"EMAIL#{user.email}",
+                                "pk": f"Email#{user.email}",
                                 "sk": "USER",
                                 "user_id": user.id,
                             },
@@ -85,7 +85,7 @@ class DDBUserRepository(UserRepository):
         try:
             # 1) Query reverse lookup
             resp = self.table.query(
-                KeyConditionExpression=Key("pk").eq(f"EMAIL#{email}")
+                KeyConditionExpression=Key("pk").eq(f"Email#{email}")
                 & Key("sk").eq("USER"),
                 Limit=1,
             )
@@ -97,7 +97,7 @@ class DDBUserRepository(UserRepository):
 
             # 2) Get main profile
             user_resp = self.table.get_item(
-                Key={"pk": f"USER#{user_id}", "sk": "PROFILE"},
+                Key={"pk": f"User#{user_id}", "sk": "PROFILE"},
                 ConsistentRead=True,
                 ProjectionExpression="id, email, #name, password, #role, available",
                 ExpressionAttributeNames={"#name": "name", "#role": "role"},

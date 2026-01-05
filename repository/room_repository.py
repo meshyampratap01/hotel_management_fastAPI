@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from boto3.dynamodb.conditions import Attr, Key
 from botocore.utils import ClientError
 from models import rooms
 
@@ -13,11 +14,15 @@ class RoomRepository(ABC):
         pass
 
     @abstractmethod
-    def get_all_rooms(self):
+    def get_all_rooms(self) -> list[rooms.Room]:
         pass
 
     @abstractmethod
-    def get_room_by_number(self, room_number: int):
+    def get_room_by_number(self, room_number: int) -> rooms.Room | None:
+        pass
+
+    @abstractmethod
+    def get_available_rooms(self) -> list[rooms.Room]:
         pass
 
 
@@ -36,6 +41,7 @@ class DDBRoomRepository(RoomRepository):
                 Item={
                     "pk": pk,
                     "sk": sk,
+                    "id": room.id,
                     "number": room.number,
                     "room_type": room.type,
                     "price": room.price,
@@ -49,7 +55,7 @@ class DDBRoomRepository(RoomRepository):
                 raise ValueError("Room already exists")
             raise e
 
-    def get_room_by_number(self, room_number: int):
+    def get_room_by_number(self, room_number: int) -> rooms.Room | None:
         pk = "ROOMS"
         sk = f"room#{room_number}"
 
@@ -100,4 +106,56 @@ class DDBRoomRepository(RoomRepository):
             raise e
 
     def get_all_rooms(self):
-        pass
+        pk = "ROOMS"
+        try:
+            response = self.table.query(
+                KeyConditionExpression=(
+                    Key("pk").eq(pk) & Key("sk").begins_with("room#")
+                )
+            )
+        except ClientError as e:
+            raise e
+
+        items = response.get("Items", [])
+
+        return [
+            rooms.Room(
+                id=item["pk"],
+                number=item["number"],
+                type=item["room_type"],
+                price=item["price"],
+                is_available=item["is_available"],
+                description=item["description"],
+            )
+            for item in items
+        ]
+
+    def get_available_rooms(self):
+        pk = "ROOMS"
+        rooms_list = []
+
+        try:
+            response = self.table.query(
+                KeyConditionExpression=(
+                    Key("pk").eq(pk) & Key("sk").begins_with("room#")
+                ),
+                FilterExpression=Attr("is_available").eq(True),
+            )
+        except ClientError as e:
+            raise e
+
+        items = response.get("Items", [])
+
+        for item in items:
+            rooms_list.append(
+                rooms.Room(
+                    id=item["pk"],
+                    number=item["number"],
+                    type=item["room_type"],
+                    price=item["price"],
+                    is_available=item["is_available"],
+                    description=item.get("description", ""),
+                )
+            )
+
+        return rooms_list

@@ -1,8 +1,9 @@
-from fastapi import HTTPException, Request
+from typing import Callable
+from fastapi import HTTPException, Request, status
 from repository.user_repository import UserRepository
 from repository.booking_repository import BookingRepository
-from repository.room_repository import RoomRepository
 from utils import utils
+from repository.room_repository import RoomRepository
 
 
 def get_user_repository(req: Request) -> UserRepository:
@@ -24,10 +25,22 @@ def get_token(request: Request) -> str:
     return auth.split(" ")[1]
 
 
-def get_current_user(request: Request):
-    token = get_token(request)
-    try:
-        payload = utils.verify_jwt(token)
+def require_roles(*allowed_roles: str) -> Callable:
+    def role_checker(request: Request):
+        token = get_token(request)
+
+        try:
+            payload = utils.verify_jwt(token)
+        except HTTPException:
+            raise
+
+        user_role = payload.get("role")
+
+        if user_role not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="User unauthorized"
+            )
+
         return payload
-    except HTTPException:
-        raise
+
+    return role_checker

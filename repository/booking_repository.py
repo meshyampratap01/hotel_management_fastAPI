@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from boto3.dynamodb.conditions import Attr, Key
 from botocore.utils import ClientError
 from datetime import datetime
 from fastapi import HTTPException, status
@@ -15,11 +16,7 @@ class BookingRepository(ABC):
         pass
 
     @abstractmethod
-    def get_booking_by_userID(self, userID: str):
-        pass
-
-    @abstractmethod
-    def get_booking_by_ID(self, bookingID: str):
+    def get_bookings_by_userID(self, userID: str) -> list[bookings.Booking]:
         pass
 
     @abstractmethod
@@ -211,8 +208,34 @@ class DDBBookingRepository(BookingRepository):
                 detail="Failed to update booking",
             )
 
-    def get_booking_by_userID(self, userID: str):
-        pass
+    def get_bookings_by_userID(self, userID: str):
+        try:
+            response = self.table.query(
+                KeyConditionExpression=(
+                    Key("pk").eq(f"User#{userID}") & Key(
+                        "sk").begins_with("booking#")
+                ),
+                FilterExpression=Attr("status").eq("Booked"),
+            )
+        except ClientError as e:
+            raise e
+
+        items = response.get("Items", [])
+
+        return [
+            bookings.Booking(
+                id=item["booking_id"],
+                user_id=userID,
+                room_id=item["room_id"],
+                room_num=item["room_num"],
+                check_in=datetime.fromisoformat(item["check_in"]),
+                check_out=datetime.fromisoformat(item["check_out"]),
+                status=item["status"],
+                food_req=item["food_req"],
+                clean_req=item["clean_req"],
+            )
+            for item in items
+        ]
 
     def get_expired_bookings(self):
         pass

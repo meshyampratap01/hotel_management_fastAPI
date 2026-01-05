@@ -61,3 +61,10 @@ def cancel_booking(bookingID: str, booking_repo, room_repo):
         return booking
     except Exception:
         raise
+
+
+def get_active_bookings_by_userID(userID: str, booking_repo):
+    try:
+        return booking_repo.get_bookings_by_userID(userID)
+    except Exception:
+        raise

@@ -3,8 +3,7 @@ from fastapi import FastAPI
 from repository.user_repository import DDBUserRepository
 from repository.booking_repository import DDBBookingRepository
 from repository.room_repository import DDBRoomRepository
-from routes import auth
-from routes import bookings
+from routes import auth, bookings, rooms
 import boto3
 
 
@@ -25,3 +24,4 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 app.include_router(auth.auth_router)
 app.include_router(bookings.booking_router)
+app.include_router(rooms.room_router)
