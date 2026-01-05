@@ -3,6 +3,7 @@ from boto3.dynamodb.conditions import Attr, Key
 from botocore.utils import ClientError
 from datetime import datetime
 from fastapi import HTTPException, status
+from app_exception.app_exception import AppException
 from models import bookings
 
 
@@ -81,7 +82,6 @@ class DDBBookingRepository(BookingRepository):
                 ]
             )
         except ClientError as e:
-            print(e.response)
             error = e.response.get("Error", {})
             code = error.get("Code")
 
@@ -89,14 +89,14 @@ class DDBBookingRepository(BookingRepository):
                 reasons = e.response.get("CancellationReasons", [])
 
                 if any(r.get("Code") == "ConditionalCheckFailed" for r in reasons):
-                    raise HTTPException(
+                    raise AppException(
                         status_code=status.HTTP_409_CONFLICT,
-                        detail="Booking already exists",
+                        message="Booking already exists",
                     )
 
-            raise HTTPException(
+            raise AppException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to create booking",
+                message="Failed to create booking",
             )
 
     def get_booking_by_ID(self, bookingID: str):
@@ -110,12 +110,17 @@ class DDBBookingRepository(BookingRepository):
                     "sk": sk,
                 }
             )
-        except ClientError as e:
-            raise e
-
+        except ClientError:
+            raise AppException(
+                message="Failed to fetch booking by id",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
         item = response.get("Item")
         if not item:
-            return None
+            raise AppException(
+                message="No bookings found",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
 
         return bookings.Booking(
             id=item["id"],
@@ -193,19 +198,18 @@ class DDBBookingRepository(BookingRepository):
             )
 
         except ClientError as e:
-            print(e.response)
             error = e.response.get("Error", {})
             code = error.get("Code")
 
             if code == "TransactionCanceledException":
-                raise HTTPException(
+                raise AppException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Booking not found",
+                    message="Booking not found",
                 )
 
-            raise HTTPException(
+            raise AppException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to update booking",
+                message="Failed to update booking",
             )
 
     def get_bookings_by_userID(self, userID: str):
@@ -217,8 +221,12 @@ class DDBBookingRepository(BookingRepository):
                 ),
                 FilterExpression=Attr("status").eq("Booked"),
             )
-        except ClientError as e:
-            raise e
+
+        except ClientError:
+            raise AppException(
+                message="Failed to fetch bookings",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
         items = response.get("Items", [])
 

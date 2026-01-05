@@ -29,9 +29,7 @@ def book_room(
         raise
 
 
-@booking_router.delete(
-    "/{booking_id}", response_model=Booking, status_code=status.HTTP_200_OK
-)
+@booking_router.delete("/{booking_id}", status_code=status.HTTP_200_OK)
 def cancel_booking(
     booking_id: str,
     _=Depends(require_roles(Role.GUEST.value)),
@@ -39,9 +37,10 @@ def cancel_booking(
     room_repo=Depends(get_room_repository),
 ):
     try:
-        return booking_service.cancel_booking(
+        booking_service.cancel_booking(
             bookingID=booking_id, booking_repo=booking_repo, room_repo=room_repo
         )
+        return {"detail": "booking successfully cancelled"}
     except Exception:
         raise
 

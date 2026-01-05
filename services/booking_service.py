@@ -1,7 +1,8 @@
 import uuid
+from app_exception.app_exception import AppException
 from models.bookings import Booking
 from models.booking_status import BookingStatus
-from fastapi import HTTPException, status
+from fastapi import status
 from dtos.booking_requests import CreateBookingRequest
 
 
@@ -12,15 +13,14 @@ def BookRoom(
     check_in_date = create_booking_request.check_in_date
     check_out_date = create_booking_request.check_out_date
 
-    room = room_repo.get_room_by_number(room_number)
-    if room is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="room not available"
-        )
+    try:
+        room = room_repo.get_room_by_number(room_number)
+    except AppException:
+        raise
 
     if room.is_available is False:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="room already booked"
+        raise AppException(
+            status_code=status.HTTP_400_BAD_REQUEST, message="room already booked"
         )
 
     user_id = current_user.get("sub")
@@ -41,30 +41,27 @@ def BookRoom(
         room_repo.update_room_availability(new_booking.room_num, False)
         booking_repo.save_booking(new_booking)
         return new_booking
-    except HTTPException:
+    except AppException:
         raise
 
 
 def cancel_booking(bookingID: str, booking_repo, room_repo):
-    booking = booking_repo.get_booking_by_ID(bookingID)
-    if booking is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="no booking found for this booking id",
-        )
+    try:
+        booking = booking_repo.get_booking_by_ID(bookingID)
+    except AppException:
+        raise
 
     booking.status = BookingStatus.Booking_Status_Cancelled.value
 
     try:
         room_repo.update_room_availability(booking.room_num, True)
         booking_repo.update_booking(booking)
-        return booking
-    except Exception:
+    except AppException:
         raise
 
 
 def get_active_bookings_by_userID(userID: str, booking_repo):
     try:
         return booking_repo.get_bookings_by_userID(userID)
-    except Exception:
+    except AppException:
         raise

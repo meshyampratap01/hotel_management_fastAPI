@@ -11,6 +11,7 @@ auth_router = APIRouter(prefix="/auth")
 def sign_up(user_request: UserCreateRequest, user_repo=Depends(get_user_repository)):
     try:
         user_service.signup(request=user_request, userRepo=user_repo)
+        return {"detail": "User successfully created, please login to continue"}
     except HTTPException:
         raise
 

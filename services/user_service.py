@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime, timedelta, timezone
 from fastapi import HTTPException, status
+from app_exception.app_exception import AppException
 from models import users, roles
 from dtos.auth_requests import UserCreateRequest, UserLoginRequest
 from utils import utils
@@ -30,7 +31,7 @@ def signup(request: UserCreateRequest, userRepo):
 
     try:
         userRepo.save_user(new_user)
-    except HTTPException:
+    except AppException:
         raise
 
 

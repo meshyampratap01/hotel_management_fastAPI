@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class RoomType(Enum):
+class RoomType(str, Enum):
     RoomTypeStandard = "Standard"
     RoomTypeDeluxe = "Deluxe"
     RoomTypeSuite = "Suite"
