@@ -1,0 +1,131 @@
+from abc import ABC, abstractmethod
+from boto3.dynamodb.conditions import Key
+from typing import Optional
+from botocore.utils import ClientError
+from fastapi import HTTPException, status
+from models import users
+
+
+class UserRepository(ABC):
+    @abstractmethod
+    def save_user(self, user: users.User) -> None:
+        pass
+
+    @abstractmethod
+    def get_user_by_email(self, email: str) -> users.User | None:
+        pass
+
+    @abstractmethod
+    def update_user(self, user: users.User) -> None:
+        pass
+
+    @abstractmethod
+    def delete_user_by_id(self, user_id: str) -> None:
+        pass
+
+
+class DDBUserRepository(UserRepository):
+    def __init__(self, ddb_resource, table_name: str):
+        self.table = ddb_resource.Table(table_name)
+        self.table_name = table_name
+        self.ddb_client = ddb_resource.meta.client
+
+    def save_user(self, user: users.User) -> None:
+        try:
+            self.ddb_client.transact_write_items(
+                TransactItems=[
+                    # 1️⃣ Main user record
+                    {
+                        "Put": {
+                            "TableName": self.table_name,
+                            "Item": {
+                                "pk": f"USER#{user.id}",
+                                "sk": "PROFILE",
+                                "id": user.id,
+                                "email": user.email,
+                                "name": user.name,
+                                "password": user.password,
+                                "role": user.role.value
+                                if hasattr(user.role, "value")
+                                else user.role,
+                                "available": user.available,
+                            },
+                        }
+                    },
+                    # 2️⃣ Reverse lookup (email → id)
+                    {
+                        "Put": {
+                            "TableName": self.table_name,
+                            "Item": {
+                                "pk": f"EMAIL#{user.email}",
+                                "sk": "USER",
+                                "user_id": user.id,
+                            },
+                            "ConditionExpression": "attribute_not_exists(pk)",
+                        }
+                    },
+                ]
+            )
+        except ClientError as e:
+            if e.response.get("Error", {}).get(
+                "Code"
+            ) == "TransactionCanceledException" and any(
+                r.get("Code") == "ConditionalCheckFailed"
+                for r in e.response.get("CancellationReasons", [])
+            ):
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT, detail="Email already exists"
+                )
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to create user",
+            )
+
+    def get_user_by_email(self, email: str) -> Optional[users.User]:
+        try:
+            # 1) Query reverse lookup
+            resp = self.table.query(
+                KeyConditionExpression=Key("pk").eq(f"EMAIL#{email}")
+                & Key("sk").eq("USER"),
+                Limit=1,
+            )
+            items = resp.get("Items", [])
+            if not items:
+                return None
+
+            user_id = items[0]["user_id"]
+
+            # 2) Get main profile
+            user_resp = self.table.get_item(
+                Key={"pk": f"USER#{user_id}", "sk": "PROFILE"},
+                ConsistentRead=True,
+                ProjectionExpression="id, email, #name, password, #role, available",
+                ExpressionAttributeNames={"#name": "name", "#role": "role"},
+            )
+            item = user_resp.get("Item")
+            if not item:
+                return None
+
+            return users.User(
+                id=item["id"],
+                email=item["email"],
+                name=item.get("name"),
+                password=item.get("password"),
+                role=users.Role(item["role"])
+                if hasattr(users, "Role")
+                else item.get("role"),
+                available=item.get("available", False),
+            )
+
+        except ClientError as e:
+            print(e)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to fetch user by email",
+            )
+
+    def update_user(self, user: users.User) -> None:
+        pass
+
+    def delete_user_by_id(self, user_id: str) -> None:
+        pass
