@@ -6,7 +6,7 @@ from dtos.employee_response import EmployeeResponse
 from models import users
 from models.roles import Role
 from repository.employee_repository import EmployeeRepository
-from dtos.employee_requests import CreateEmployeeRequest
+from dtos.employee_requests import CreateEmployeeRequest, UpdateEmployeeRequest
 from utils import utils
 
 
@@ -65,5 +65,27 @@ class EmployeeService:
                 )
                 for e in employees
             ]
+        except Exception:
+            raise
+
+    def update_employee_availability(
+        self, employee_id: str, update_employee_request: UpdateEmployeeRequest
+    ):
+        try:
+            self.employee_repo.update_employee_availability(
+                employee_id=employee_id, available=update_employee_request.available
+            )
+        except Exception:
+            raise
+
+    def delete_employee(self, employee_id: str):
+        try:
+            employee: users.User = self.employee_repo.get_employee_by_id(
+                employee_id)
+
+            self.employee_repo.delete_employee(
+                employee_id=employee_id,
+                email=employee.email,
+            )
         except Exception:
             raise

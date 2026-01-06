@@ -7,3 +7,7 @@ class CreateEmployeeRequest(BaseModel):
     password: str = Field(..., min_length=8, description="Employee password")
     role: str = Field(..., min_length=1, description="Employee role")
     available: bool = Field(..., description="Employee availability status")
+
+
+class UpdateEmployeeRequest(BaseModel):
+    available: bool = Field(..., description="Employee availability status")

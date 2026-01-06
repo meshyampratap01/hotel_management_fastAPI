@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from os import stat
 from typing import List
 
 from boto3.dynamodb.conditions import Key
@@ -16,6 +17,18 @@ class EmployeeRepository(ABC):
 
     @abstractmethod
     def get_employees(self) -> List[users.User]:
+        pass
+
+    @abstractmethod
+    def get_employee_by_id(self, employee_id: str) -> users.User:
+        pass
+
+    @abstractmethod
+    def update_employee_availability(self, employee_id: str, available: bool) -> None:
+        pass
+
+    @abstractmethod
+    def delete_employee(self, employee_id: str, email: str) -> None:
         pass
 
 
@@ -116,4 +129,97 @@ class DDBEmployeeRepository(EmployeeRepository):
             raise AppException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 message="Failed to fetch employees",
+            )
+
+    def update_employee_availability(self, employee_id: str, available: bool) -> None:
+        try:
+            self.table.update_item(
+                Key={
+                    "pk": "Employee",
+                    "sk": f"Employee#{employee_id}",
+                },
+                UpdateExpression="SET available = :available",
+                ExpressionAttributeValues={
+                    ":available": available,
+                },
+                ConditionExpression="attribute_exists(pk)",
+            )
+
+        except ClientError as e:
+            if e.response["Error"]["Code"] == "ConditionalCheckFailedException":
+                raise AppException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    message="Employee not found",
+                )
+
+            raise AppException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                message="Failed to update employee",
+            )
+
+    def get_employee_by_id(self, employee_id: str):
+        try:
+            response = self.table.get_item(
+                Key={"pk": "Employee", "sk": f"Employee#{employee_id}"}
+            )
+            item = response.get("Item")
+            if not item:
+                raise AppException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    message="Employee not found",
+                )
+            return users.User(
+                id=item["id"],
+                name=item["name"],
+                email=item["email"],
+                password="",  # never return password
+                role=item["role"],
+                available=item["available"],
+            )
+        except ClientError:
+            raise AppException(
+                message="employee not found", status_code=status.HTTP_404_NOT_FOUND
+            )
+
+    def delete_employee(self, employee_id: str, email: str) -> None:
+        try:
+            self.ddb_client.transact_write_items(
+                TransactItems=[
+                    {
+                        "Delete": {
+                            "TableName": self.table_name,
+                            "Key": {
+                                "pk": "Employee",
+                                "sk": f"Employee#{employee_id}",
+                            },
+                            "ConditionExpression": "attribute_exists(pk)",
+                        }
+                    },
+                    {
+                        "Delete": {
+                            "TableName": self.table_name,
+                            "Key": {
+                                "pk": f"User#{employee_id}",
+                                "sk": "PROFILE",
+                            },
+                            "ConditionExpression": "attribute_exists(pk)",
+                        }
+                    },
+                    {
+                        "Delete": {
+                            "TableName": self.table_name,
+                            "Key": {
+                                "pk": f"Email#{email}",
+                                "sk": "USER",
+                            },
+                            "ConditionExpression": "attribute_exists(pk)",
+                        }
+                    },
+                ]
+            )
+
+        except ClientError:
+            raise AppException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                message="Failed to delete employee",
             )
