@@ -1,8 +1,10 @@
 import bcrypt
 import os
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 import jwt
 from dotenv import load_dotenv
+
+from app_exception.app_exception import AppException
 
 
 load_dotenv()
@@ -28,7 +30,10 @@ def generate_jwt(payload):
             payload=payload, key=my_secret_key, algorithm="HS256")
         return token
     except Exception:
-        raise
+        raise AppException(
+            message="Failed to generate jwt token",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
 
 
 def verify_jwt(token: str):
@@ -39,6 +44,6 @@ def verify_jwt(token: str):
             algorithms=["HS256"],
         )
     except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expired")
+        raise AppException(status_code=401, message="Token expired")
     except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Invalid token")
+        raise AppException(status_code=401, message="Invalid token")

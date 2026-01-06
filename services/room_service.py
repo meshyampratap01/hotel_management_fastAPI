@@ -1,93 +1,92 @@
 import uuid
-
+from typing import List
 from botocore.utils import ClientError
 from fastapi import status
 from app_exception.app_exception import AppException
 from dtos.room_requests import AddRoomRequest, UpdateRoomRequest
 from models import rooms
+from repository.room_repository import RoomRepository
 
 
-def get_all_rooms(room_repo) -> list[rooms.Room]:
-    try:
-        rooms = room_repo.get_all_rooms()
-        return rooms
-    except AppException:
-        raise
+class RoomService:
+    def __init__(self, room_repo: RoomRepository):
+        self.room_repo = room_repo
 
+    def get_all_rooms(self) -> List[rooms.Room]:
+        try:
+            return self.room_repo.get_all_rooms()
+        except AppException:
+            raise
 
-def get_available_rooms(room_repo) -> list[rooms.Room]:
-    try:
-        rooms = room_repo.get_available_rooms()
-        return rooms
-    except AppException:
-        raise
+    def get_available_rooms(self) -> List[rooms.Room]:
+        try:
+            return self.room_repo.get_available_rooms()
+        except AppException:
+            raise
 
+    def add_room(self, request: AddRoomRequest) -> rooms.Room:
+        new_room = rooms.Room(
+            id=str(uuid.uuid4()),
+            number=request.number,
+            type=request.type,
+            price=request.price,
+            is_available=True,
+            description=request.description,
+        )
 
-def add_room(add_room_request: AddRoomRequest, room_repo):
-    room_num = add_room_request.number
-    room_type = add_room_request.type
-    room_price = add_room_request.price
-    room_description = add_room_request.description
+        try:
+            self.room_repo.add_room(new_room)
+            return new_room
+        except AppException:
+            raise
 
-    new_room = rooms.Room(
-        id=str(uuid.uuid4()),
-        number=room_num,
-        type=room_type,
-        price=room_price,
-        is_available=True,
-        description=room_description,
-    )
+    def delete_room(self, room_num: int) -> None:
+        try:
+            room: rooms.Room = self.room_repo.get_room_by_number(room_num)
 
-    try:
-        room_repo.add_room(new_room)
-        return new_room
-    except AppException:
-        raise
+            if not room.is_available:
+                raise AppException(
+                    message="Room is booked and cannot be deleted",
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                )
 
+            self.room_repo.delete_room(room_num)
 
-def delete_room(room_num: int, room_repo):
-    try:
-        room = room_repo.get_room_by_number(room_num)
-        if room.is_available is True:
-            room_repo.delete_room(room_num)
-        else:
+        except AppException:
+            raise
+
+    def update_room(self, room_num: int, data: UpdateRoomRequest) -> None:
+        update_fields = {}
+
+        if data.type is not None:
+            update_fields["room_type"] = data.type
+
+        if data.price is not None:
+            update_fields["price"] = data.price
+
+        if data.is_available is not None:
+            update_fields["is_available"] = data.is_available
+
+        if data.description is not None:
+            update_fields["description"] = data.description
+
+        if not update_fields:
             raise AppException(
-                message="room is booked and can not be deleted",
+                message="No fields provided for update",
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
-    except AppException:
-        raise
 
+        try:
+            self.room_repo.update_room(room_num, update_fields)
 
-def update_room(room_num: int, data: UpdateRoomRequest, room_repo):
-    fields = {}
-    if data.type is not None:
-        fields["room_type"] = data.type
+        except ClientError as e:
+            if e.response["Error"]["Code"] == "ConditionalCheckFailedException":
+                raise AppException(
+                    message="Room not found",
+                    status_code=status.HTTP_404_NOT_FOUND,
+                )
 
-    if data.price is not None:
-        fields["price"] = data.price
-
-    if data.is_available is not None:
-        fields["is_available"] = data.is_available
-
-    if data.description is not None:
-        fields["description"] = data.description
-
-    if not fields:
-        raise AppException(
-            message="No fields provided for update",
-            status_code=status.HTTP_400_BAD_REQUEST,
-        )
-
-    try:
-        room_repo.update_room(room_num, fields)
-    except ClientError as e:
-        if e.response["Error"]["Code"] == "ConditionalCheckFailedException":
             raise AppException(
-                message="Room not found",
-                status_code=status.HTTP_404_NOT_FOUND,
+                message="Failed to update room",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-        raise AppException(
-            message="Failed to update room",
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )

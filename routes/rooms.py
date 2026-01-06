@@ -1,6 +1,9 @@
 from fastapi import APIRouter, Depends, status
 from app_exception.app_exception import AppException
-from dependencies import get_booking_repository, get_room_repository, require_roles
+from dependencies import (
+    get_room_service,
+    require_roles,
+)
 from dtos.room_requests import AddRoomRequest, UpdateRoomRequest
 from models import rooms
 from models import roles
@@ -12,7 +15,7 @@ room_router = APIRouter(prefix="/rooms")
 
 @room_router.get("/", status_code=status.HTTP_200_OK)
 def get_rooms_by_role(
-    room_repo=Depends(get_room_repository),
+    room_service: room_service.RoomService = Depends(get_room_service),
     current_user=Depends(require_roles(Role.GUEST.value, Role.MANAGER.value)),
 ):
     role = current_user.get("role")
@@ -22,10 +25,10 @@ def get_rooms_by_role(
     try:
         if role == Role.MANAGER.value:
             print("hello manager")
-            return room_service.get_all_rooms(room_repo)
+            return room_service.get_all_rooms()
         elif role == Role.GUEST.value:
             print("hello guest")
-            return room_service.get_available_rooms(room_repo)
+            return room_service.get_available_rooms()
     except AppException:
         raise
 
@@ -34,10 +37,10 @@ def get_rooms_by_role(
 def add_room(
     add_room_request: AddRoomRequest,
     _=Depends(require_roles(roles.Role.MANAGER)),
-    room_repo=Depends(get_room_repository),
+    room_service=Depends(get_room_service),
 ):
     try:
-        return room_service.add_room(add_room_request, room_repo)
+        return room_service.add_room(add_room_request)
     except AppException:
         raise
 
@@ -46,10 +49,10 @@ def add_room(
 def delete_room(
     room_num: int,
     _=Depends(require_roles("Manager")),
-    room_repo=Depends(get_room_repository),
+    room_service=Depends(get_room_service),
 ):
     try:
-        room_service.delete_room(room_num, room_repo)
+        room_service.delete_room(room_num)
         return {"detail": "room deleted successfully"}
     except AppException:
         raise
@@ -60,10 +63,10 @@ def update_room(
     update_room_request: UpdateRoomRequest,
     room_num: int,
     _=Depends(require_roles("Manager")),
-    room_repo=Depends(get_room_repository),
+    room_service=Depends(get_room_service),
 ):
     try:
-        room_service.update_room(room_num, update_room_request, room_repo)
+        room_service.update_room(room_num, update_room_request)
         return {"detail": "Room updated successfully"}
     except AppException:
         raise

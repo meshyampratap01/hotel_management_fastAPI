@@ -5,60 +5,71 @@ from app_exception.app_exception import AppException
 from models import users, roles
 from dtos.auth_requests import UserCreateRequest, UserLoginRequest
 from utils import utils
+from repository import user_repository
 
 
-def create_user(
-    name: str,
-    email: str,
-    password: str,
-    role=roles.Role.GUEST.value,
-) -> users.User:
-    return users.User(
-        id=str(uuid.uuid4()),
-        name=name,
-        email=email,
-        password=utils.hash_password(password),
-        role=role,
-        available=False,
-    )
+class UserService:
+    def __init__(self, user_repo: user_repository.UserRepository):
+        self.user_repo = user_repo
 
-
-def signup(request: UserCreateRequest, userRepo):
-    name = request.name
-    email = request.email.lower()
-    password = request.password
-    new_user = create_user(name, email, password)
-
-    try:
-        userRepo.save_user(new_user)
-    except AppException:
-        raise
-
-
-def login(request: UserLoginRequest, userRepo):
-    email = request.email.lower()
-    password = request.password
-    user = userRepo.get_user_by_email(email)
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password"
+    def _create_user(
+        self,
+        name: str,
+        email: str,
+        password: str,
+        role: str = roles.Role.GUEST.value,
+    ) -> users.User:
+        return users.User(
+            id=str(uuid.uuid4()),
+            name=name,
+            email=email,
+            password=utils.hash_password(password),
+            role=role,
+            available=False,
         )
 
-    if not utils.verify_password(password, user.password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password"
+    def signup(self, request: UserCreateRequest) -> None:
+        email = request.email.lower()
+
+        user = self._create_user(
+            name=request.name,
+            email=email,
+            password=request.password,
         )
 
-    payload = {
-        "sub": user.id,
-        "user_name": user.name,
-        "role": user.role,
-        "iat": datetime.now(tz=timezone.utc),
-        "exp": datetime.now(tz=timezone.utc) + timedelta(minutes=60),
-    }
+        try:
+            self.user_repo.save_user(user)
+        except AppException:
+            raise
+        except Exception:
+            raise AppException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                message="Failed to create user",
+            )
 
-    try:
-        token = utils.generate_jwt(payload)
-        return token
-    except Exception:
-        raise
+    def login(self, request: UserLoginRequest) -> str:
+        email = request.email.lower()
+
+        try:
+            user: users.User = self.user_repo.get_user_by_email(email)
+        except AppException:
+            raise
+
+        if not utils.verify_password(request.password, user.password):
+            raise AppException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                message="Invalid email or password",
+            )
+
+        payload = {
+            "sub": user.id,
+            "user_name": user.name,
+            "role": user.role,
+            "iat": datetime.now(tz=timezone.utc),
+            "exp": datetime.now(tz=timezone.utc) + timedelta(minutes=60),
+        }
+
+        try:
+            return utils.generate_jwt(payload)
+        except AppException:
+            raise

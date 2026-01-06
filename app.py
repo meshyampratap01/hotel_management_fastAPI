@@ -3,24 +3,14 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from app_exception.app_exception import AppException
-from repository.user_repository import DDBUserRepository
-from repository.booking_repository import DDBBookingRepository
-from repository.room_repository import DDBRoomRepository
-from routes import auth, bookings, rooms
+from routes import auth, bookings, employees, rooms
 import boto3
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    ddb = boto3.resource("dynamodb")
-    table_name = "letstayinn"
-    app.state.user_repo = DDBUserRepository(
-        ddb_resource=ddb, table_name=table_name)
-    app.state.booking_repo = DDBBookingRepository(
-        ddb_resource=ddb, table_name=table_name
-    )
-    app.state.room_repo = DDBRoomRepository(
-        ddb_resource=ddb, table_name=table_name)
+    ddb_resource = boto3.resource("dynamodb")
+    app.state.ddb_resource = ddb_resource
     yield
 
 
@@ -54,3 +44,4 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 app.include_router(auth.auth_router)
 app.include_router(bookings.booking_router)
 app.include_router(rooms.room_router)
+app.include_router(employees.employee_router)

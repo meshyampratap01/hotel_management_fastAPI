@@ -20,7 +20,7 @@ class RoomRepository(ABC):
         pass
 
     @abstractmethod
-    def get_room_by_number(self, room_number: int) -> rooms.Room | None:
+    def get_room_by_number(self, room_number: int) -> rooms.Room:
         pass
 
     @abstractmethod
@@ -70,7 +70,7 @@ class DDBRoomRepository(RoomRepository):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-    def get_room_by_number(self, room_number: int) -> rooms.Room | None:
+    def get_room_by_number(self, room_number: int) -> rooms.Room:
         pk = "ROOMS"
         sk = f"room#{room_number}"
 

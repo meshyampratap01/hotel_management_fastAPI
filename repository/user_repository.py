@@ -1,8 +1,7 @@
 from abc import ABC, abstractmethod
 from boto3.dynamodb.conditions import Key
-from typing import Optional
 from botocore.utils import ClientError
-from fastapi import HTTPException, status
+from fastapi import status
 from app_exception.app_exception import AppException
 from models import users
 
@@ -13,15 +12,7 @@ class UserRepository(ABC):
         pass
 
     @abstractmethod
-    def get_user_by_email(self, email: str) -> users.User | None:
-        pass
-
-    @abstractmethod
-    def update_user(self, user: users.User) -> None:
-        pass
-
-    @abstractmethod
-    def delete_user_by_id(self, user_id: str) -> None:
+    def get_user_by_email(self, email: str) -> users.User:
         pass
 
 
@@ -139,9 +130,3 @@ class DDBUserRepository(UserRepository):
             else item.get("role"),
             available=item.get("available", False),
         )
-
-    def update_user(self, user: users.User) -> None:
-        pass
-
-    def delete_user_by_id(self, user_id: str) -> None:
-        pass
