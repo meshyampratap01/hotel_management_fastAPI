@@ -79,13 +79,7 @@ class RoomService:
         try:
             self.room_repo.update_room(room_num, update_fields)
 
-        except ClientError as e:
-            if e.response["Error"]["Code"] == "ConditionalCheckFailedException":
-                raise AppException(
-                    message="Room not found",
-                    status_code=status.HTTP_404_NOT_FOUND,
-                )
-
+        except AppException:
             raise AppException(
                 message="Failed to update room",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

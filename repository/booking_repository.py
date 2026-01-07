@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from boto3.dynamodb.conditions import Attr, Key
 from botocore.utils import ClientError
 from datetime import datetime
-from fastapi import HTTPException, status
+from fastapi import status
 from app_exception.app_exception import AppException
 from models import bookings
 
@@ -216,8 +216,7 @@ class DDBBookingRepository(BookingRepository):
         try:
             response = self.table.query(
                 KeyConditionExpression=(
-                    Key("pk").eq(f"User#{userID}") & Key(
-                        "sk").begins_with("booking#")
+                    Key("pk").eq(f"User#{userID}") & Key("sk").begins_with("booking#")
                 ),
                 FilterExpression=Attr("status").eq("Booked"),
             )

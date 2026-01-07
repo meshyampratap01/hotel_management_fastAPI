@@ -15,6 +15,10 @@ class UserRepository(ABC):
     def get_user_by_email(self, email: str) -> users.User:
         pass
 
+    @abstractmethod
+    def get_user_by_id(self, user_id: str) -> users.User:
+        pass
+
 
 class DDBUserRepository(UserRepository):
     def __init__(self, ddb_resource, table_name: str):
@@ -120,6 +124,43 @@ class DDBUserRepository(UserRepository):
                 status_code=status.HTTP_404_NOT_FOUND,
             )
 
+        return users.User(
+            id=item["id"],
+            email=item["email"],
+            name=item.get("name"),
+            password=item.get("password"),
+            role=users.Role(item["role"])
+            if hasattr(users, "Role")
+            else item.get("role"),
+            available=item.get("available", False),
+        )
+
+    def get_user_by_id(self, user_id: str) -> users.User:
+        try:
+            user_resp = self.table.get_item(
+                Key={
+                    "pk": f"User#{user_id}",
+                    "sk": "PROFILE",
+                },
+                ConsistentRead=True,
+                ProjectionExpression="id, email, #name, password, #role, available",
+                ExpressionAttributeNames={
+                    "#name": "name",
+                    "#role": "role",
+                },
+            )
+        except ClientError:
+            raise AppException(
+                message="Failed to fetch user profile",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        item = user_resp.get("Item")
+        if not item:
+            raise AppException(
+                message="User profile not found",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
         return users.User(
             id=item["id"],
             email=item["email"],

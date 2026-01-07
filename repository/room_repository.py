@@ -232,4 +232,12 @@ class DDBRoomRepository(RoomRepository):
                 ConditionExpression="attribute_exists(pk)",
             )
         except ClientError as e:
-            raise e
+            if e.response["Error"]["Code"] == "ConditionalCheckFailedException":
+                raise AppException(
+                    message="Room not found",
+                    status_code=status.HTTP_404_NOT_FOUND,
+                )
+            raise AppException(
+                message="Failed to update room",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )

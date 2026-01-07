@@ -3,7 +3,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from app_exception.app_exception import AppException
-from routes import auth, bookings, employees, rooms
+from routes import auth, bookings, employees, rooms, service_request
 import boto3
 
 
@@ -45,3 +45,4 @@ app.include_router(auth.auth_router)
 app.include_router(bookings.booking_router)
 app.include_router(rooms.room_router)
 app.include_router(employees.employee_router)
+app.include_router(service_request.service_request_router)
