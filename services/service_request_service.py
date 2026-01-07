@@ -2,7 +2,11 @@ import uuid
 
 from fastapi import status
 from app_exception.app_exception import AppException
-from dtos.service_request import CreateServiceRequest, assign_service_request_dto
+from dtos.service_request import (
+    CreateServiceRequest,
+    UpdateServiceRequestStatus,
+    assign_service_request_dto,
+)
 from models.bookings import Booking
 from models.service_request import ServiceStatus, ServiceType, ServiceRequest
 from repository.booking_repository import BookingRepository
@@ -102,6 +106,37 @@ class ServiceRequestService:
             _ = self.user_repo.get_user_by_id(employee_id)
             self.service_request_repo.assign_service_request(
                 service_request_id, employee_id
+            )
+        except Exception:
+            raise
+
+    def get_assigned_service_requests(self, current_user):
+        employee_id = current_user.get("sub")
+        try:
+            return self.service_request_repo.get_assigned_service_requests(employee_id)
+        except Exception:
+            raise
+
+    def update_service_request(
+        self, service_request_id: str, request: UpdateServiceRequestStatus
+    ):
+        try:
+            req = self.service_request_repo.get_service_request_by_id(
+                service_request_id
+            )
+            if req is None:
+                raise AppException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    message="Service request not found",
+                )
+            update_status = request.status
+            if update_status != ServiceStatus.DONE:
+                raise AppException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    message="Invalid status",
+                )
+            self.service_request_repo.update_service_request(
+                service_request_id, update_status
             )
         except Exception:
             raise

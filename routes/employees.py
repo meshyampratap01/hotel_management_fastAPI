@@ -1,11 +1,19 @@
-from botocore.utils import email
 from fastapi import APIRouter, Depends
 from app_exception.app_exception import AppException
-from dependencies import get_employee_service, require_roles
+from dependencies import (
+    get_employee_service,
+    get_service_request_service,
+    require_roles,
+)
+from dtos.service_request import (
+    AssignedPendingServiceRequestDTO,
+    UpdateServiceRequestStatus,
+)
 from models.roles import Role
 
 from dtos.employee_requests import CreateEmployeeRequest, UpdateEmployeeRequest
 from services.employee_service import EmployeeService
+from services.service_request_service import ServiceRequestService
 
 employee_router = APIRouter(prefix="/employees")
 
@@ -62,5 +70,40 @@ def delete_employee(
     try:
         employee_service.delete_employee(employee_id)
         return {"detail": "employee deleted successfully"}
+    except Exception:
+        raise
+
+
+@employee_router.get(
+    "/service-requests", response_model=list[AssignedPendingServiceRequestDTO]
+)
+def get_assigned_service_request(
+    current_user=Depends(
+        require_roles(Role.KITCHEN_STAFF.value, Role.CLEANING_STAFF.value)
+    ),
+    service_reqeust_service: ServiceRequestService = Depends(
+        get_service_request_service
+    ),
+):
+    try:
+        return service_reqeust_service.get_assigned_service_requests(current_user)
+    except Exception:
+        raise
+
+
+@employee_router.put("/service-requests/status/{service_request_id}")
+def update_service_request_status(
+    service_request_id: str,
+    request: UpdateServiceRequestStatus,
+    _=Depends(require_roles(Role.KITCHEN_STAFF.value,
+              Role.CLEANING_STAFF.value)),
+    service_reqeust_service: ServiceRequestService = Depends(
+        get_service_request_service
+    ),
+):
+    try:
+        return service_reqeust_service.update_service_request(
+            service_request_id, request
+        )
     except Exception:
         raise
