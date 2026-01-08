@@ -73,3 +73,9 @@ class UserService:
             return utils.generate_jwt(payload)
         except AppException:
             raise
+
+    def get_profile(self, user_id: str) -> users.User:
+        try:
+            return self.user_repo.get_user_by_id(user_id)
+        except AppException:
+            raise

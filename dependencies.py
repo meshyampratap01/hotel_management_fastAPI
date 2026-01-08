@@ -3,11 +3,13 @@ from typing import Callable
 from dotenv import load_dotenv
 from fastapi import Depends, HTTPException, Request, status
 from repository.employee_repository import DDBEmployeeRepository
+from repository.feedback_repository import DDBFeedbackRepository
 from repository.service_request_repository import DDBServiceRequestRepository
 from repository.user_repository import DDBUserRepository
 from repository.booking_repository import DDBBookingRepository
 from services.booking_service import BookingService
 from services.employee_service import EmployeeService
+from services.feedback_service import FeedbackService
 from services.room_service import RoomService
 from services.service_request_service import ServiceRequestService
 from services.user_service import UserService
@@ -51,6 +53,13 @@ def get_service_request_service(
     booking_repo = DDBBookingRepository(ddb_resource, table_name)
     user_repo = DDBUserRepository(ddb_resource, table_name)
     return ServiceRequestService(service_request_repo, booking_repo, user_repo)
+
+
+def get_feedback_service(
+    ddb_resource=Depends(get_ddb_resource),
+) -> FeedbackService:
+    feedback_repo = DDBFeedbackRepository(ddb_resource, table_name)
+    return FeedbackService(feedback_repo)
 
 
 def get_token(request: Request) -> str:
