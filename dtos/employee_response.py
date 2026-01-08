@@ -1,10 +1,12 @@
-from pydantic import BaseModel
-from models import roles
+from pydantic import BaseModel, ConfigDict
+from models.users import Role
 
 
-class EmployeeResponse(BaseModel):
+class EmployeeResponseDTO(BaseModel):
     id: str
     name: str
     email: str
-    role: roles.Role | str
+    role: Role | str
     available: bool
+
+    model_config = ConfigDict(extra="ignore")

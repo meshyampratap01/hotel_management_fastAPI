@@ -1,13 +1,15 @@
 from typing import List
 import uuid
 from datetime import datetime
+
+from fastapi import Depends
 from dtos.feedback_dtos import CreateFeedbackDTO
 from models.feedbacks import Feedback
-from repository.feedback_repository import DDBFeedbackRepository
+from repository.feedback_repository import FeedbackRepository
 
 
 class FeedbackService:
-    def __init__(self, feedback_repo: DDBFeedbackRepository):
+    def __init__(self, feedback_repo: FeedbackRepository = Depends(FeedbackRepository)):
         self.feedback_repo = feedback_repo
 
     def save_feedback(self, request: CreateFeedbackDTO, current_user):

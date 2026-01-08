@@ -1,42 +1,19 @@
-from abc import ABC, abstractmethod
+from typing import List
 from boto3.dynamodb.conditions import Attr, Key
 from botocore.utils import ClientError
-from datetime import datetime
-from fastapi import status
+from fastapi import Depends, status
 from app_exception.app_exception import AppException
+from dependencies import get_ddb_resource, get_table_name
 from models import bookings
 
 
-class BookingRepository(ABC):
-    @abstractmethod
-    def get_all_bookings(self):
-        pass
-
-    @abstractmethod
-    def save_booking(self, booking: bookings.Booking):
-        pass
-
-    @abstractmethod
-    def get_bookings_by_userID(self, userID: str) -> list[bookings.Booking]:
-        pass
-
-    @abstractmethod
-    def update_booking(self, booking: bookings.Booking):
-        pass
-
-    @abstractmethod
-    def get_expired_bookings(self):
-        pass
-
-
-class DDBBookingRepository(BookingRepository):
-    def __init__(self, ddb_resource, table_name: str):
+class BookingRepository:
+    def __init__(
+        self, ddb_resource=Depends(get_ddb_resource), table_name=Depends(get_table_name)
+    ):
         self.table = ddb_resource.Table(table_name)
         self.table_name = table_name
         self.ddb_client = ddb_resource.meta.client
-
-    def get_all_bookings(self):
-        pass
 
     def save_booking(self, booking: bookings.Booking):
         try:
@@ -48,14 +25,7 @@ class DDBBookingRepository(BookingRepository):
                             "Item": {
                                 "pk": f"User#{booking.user_id}",
                                 "sk": f"booking#{booking.id}",
-                                "booking_id": booking.id,
-                                "room_id": booking.room_id,
-                                "room_num": booking.room_num,
-                                "check_in": booking.check_in.isoformat(),
-                                "check_out": booking.check_out.isoformat(),
-                                "status": booking.status,
-                                "food_req": booking.food_req,
-                                "clean_req": booking.clean_req,
+                                **booking.model_dump(mode="json"),
                             },
                             "ConditionExpression": "attribute_not_exists(pk) AND attribute_not_exists(sk)",
                         }
@@ -66,15 +36,7 @@ class DDBBookingRepository(BookingRepository):
                             "Item": {
                                 "pk": f"Booking#{booking.id}",
                                 "sk": "META",
-                                "id": booking.id,
-                                "user_id": booking.user_id,
-                                "room_id": booking.room_id,
-                                "room_num": booking.room_num,
-                                "check_in": booking.check_in.isoformat(),
-                                "check_out": booking.check_out.isoformat(),
-                                "status": booking.status,
-                                "food_req": booking.food_req,
-                                "clean_req": booking.clean_req,
+                                **booking.model_dump(mode="json"),
                             },
                             "ConditionExpression": "attribute_not_exists(pk)",
                         }
@@ -99,7 +61,7 @@ class DDBBookingRepository(BookingRepository):
                 message="Failed to create booking",
             )
 
-    def get_booking_by_ID(self, bookingID: str):
+    def get_booking_by_ID(self, bookingID: str) -> bookings.Booking:
         pk = f"Booking#{bookingID}"
         sk = "META"
 
@@ -123,18 +85,10 @@ class DDBBookingRepository(BookingRepository):
             )
 
         return bookings.Booking(
-            id=item["id"],
-            user_id=item["user_id"],
-            room_id=item["room_id"],
-            room_num=item["room_num"],
-            check_in=datetime.fromisoformat(item["check_in"]),
-            check_out=datetime.fromisoformat(item["check_out"]),
-            status=item["status"],
-            food_req=item["food_req"],
-            clean_req=item["clean_req"],
+            **item,
         )
 
-    def update_booking(self, booking: bookings.Booking):
+    def update_booking(self, booking: bookings.Booking) -> None:
         try:
             self.ddb_client.transact_write_items(
                 TransactItems=[
@@ -212,7 +166,7 @@ class DDBBookingRepository(BookingRepository):
                 message="Failed to update booking",
             )
 
-    def get_bookings_by_userID(self, userID: str):
+    def get_bookings_by_userID(self, userID: str) -> List[bookings.Booking]:
         try:
             response = self.table.query(
                 KeyConditionExpression=(
@@ -229,20 +183,4 @@ class DDBBookingRepository(BookingRepository):
 
         items = response.get("Items", [])
 
-        return [
-            bookings.Booking(
-                id=item["booking_id"],
-                user_id=userID,
-                room_id=item["room_id"],
-                room_num=item["room_num"],
-                check_in=datetime.fromisoformat(item["check_in"]),
-                check_out=datetime.fromisoformat(item["check_out"]),
-                status=item["status"],
-                food_req=item["food_req"],
-                clean_req=item["clean_req"],
-            )
-            for item in items
-        ]
-
-    def get_expired_bookings(self):
-        pass
+        return [bookings.Booking(**item) for item in items]

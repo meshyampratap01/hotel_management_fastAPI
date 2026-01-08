@@ -1,48 +1,21 @@
-from abc import ABC, abstractmethod
+from typing import List
 from boto3.dynamodb.conditions import Attr, Key
 from botocore.utils import ClientError
-from fastapi import status
+from fastapi import Depends, status
 from app_exception.app_exception import AppException
+from dependencies import get_ddb_resource, get_table_name
 from models import rooms
 
 
-class RoomRepository(ABC):
-    @abstractmethod
-    def add_room(self, room: rooms.Room):
-        pass
-
-    @abstractmethod
-    def update_room_availability(self, room_num: int, is_available: bool):
-        pass
-
-    @abstractmethod
-    def get_all_rooms(self) -> list[rooms.Room]:
-        pass
-
-    @abstractmethod
-    def get_room_by_number(self, room_number: int) -> rooms.Room:
-        pass
-
-    @abstractmethod
-    def get_available_rooms(self) -> list[rooms.Room]:
-        pass
-
-    @abstractmethod
-    def delete_room(self, room_num: int):
-        pass
-
-    @abstractmethod
-    def update_room(self, room_num: int, fields: dict):
-        pass
-
-
-class DDBRoomRepository(RoomRepository):
-    def __init__(self, ddb_resource, table_name) -> None:
+class RoomRepository:
+    def __init__(
+        self, ddb_resource=Depends(get_ddb_resource), table_name=Depends(get_table_name)
+    ) -> None:
         self.table = ddb_resource.Table(table_name)
         self.table_name = table_name
         self.ddb_client = ddb_resource.meta.client
 
-    def add_room(self, room: rooms.Room):
+    def add_room(self, room: rooms.Room) -> None:
         pk = "ROOMS"
         sk = f"room#{room.number}"
 
@@ -51,12 +24,7 @@ class DDBRoomRepository(RoomRepository):
                 Item={
                     "pk": pk,
                     "sk": sk,
-                    "id": room.id,
-                    "number": room.number,
-                    "room_type": room.type,
-                    "price": room.price,
-                    "is_available": room.is_available,
-                    "description": room.description,
+                    **room.model_dump(mode="json"),
                 },
                 ConditionExpression="attribute_not_exists(pk) AND attribute_not_exists(sk)",
             )
@@ -91,16 +59,9 @@ class DDBRoomRepository(RoomRepository):
                 status_code=status.HTTP_404_NOT_FOUND,
             )
 
-        return rooms.Room(
-            id=item["pk"],
-            number=item["number"],
-            type=item["room_type"],
-            price=item["price"],
-            is_available=item["is_available"],
-            description=item.get("description", ""),
-        )
+        return rooms.Room(**item)
 
-    def update_room_availability(self, room_num: int, is_available: bool):
+    def update_room_availability(self, room_num: int, is_available: bool) -> None:
         pk = "ROOMS"
         sk = f"room#{room_num}"
 
@@ -128,7 +89,7 @@ class DDBRoomRepository(RoomRepository):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-    def get_all_rooms(self):
+    def get_all_rooms(self) -> List[rooms.Room]:
         pk = "ROOMS"
         try:
             response = self.table.query(
@@ -144,19 +105,9 @@ class DDBRoomRepository(RoomRepository):
 
         items = response.get("Items", [])
 
-        return [
-            rooms.Room(
-                id=item["pk"],
-                number=item["number"],
-                type=item["room_type"],
-                price=item["price"],
-                is_available=item["is_available"],
-                description=item["description"],
-            )
-            for item in items
-        ]
+        return [rooms.Room(**item) for item in items]
 
-    def get_available_rooms(self):
+    def get_available_rooms(self) -> List[rooms.Room]:
         pk = "ROOMS"
         rooms_list = []
 
@@ -175,20 +126,11 @@ class DDBRoomRepository(RoomRepository):
         items = response.get("Items", [])
 
         for item in items:
-            rooms_list.append(
-                rooms.Room(
-                    id=item["pk"],
-                    number=item["number"],
-                    type=item["room_type"],
-                    price=item["price"],
-                    is_available=item["is_available"],
-                    description=item.get("description", ""),
-                )
-            )
+            rooms_list.append(rooms.Room(**item))
 
         return rooms_list
 
-    def delete_room(self, room_num: int):
+    def delete_room(self, room_num: int) -> None:
         pk = "ROOMS"
         sk = f"room#{room_num}"
 
@@ -213,7 +155,7 @@ class DDBRoomRepository(RoomRepository):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-    def update_room(self, room_num: int, fields: dict):
+    def update_room(self, room_num: int, fields: dict) -> None:
         pk = "ROOMS"
         sk = f"room#{room_num}"
 

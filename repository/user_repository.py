@@ -1,27 +1,17 @@
-from abc import ABC, abstractmethod
 from boto3.dynamodb.conditions import Key
 from botocore.utils import ClientError
-from fastapi import status
+from fastapi import Depends, status
 from app_exception.app_exception import AppException
+from dependencies import get_ddb_resource, get_table_name
 from models import users
 
 
-class UserRepository(ABC):
-    @abstractmethod
-    def save_user(self, user: users.User) -> None:
-        pass
-
-    @abstractmethod
-    def get_user_by_email(self, email: str) -> users.User:
-        pass
-
-    @abstractmethod
-    def get_user_by_id(self, user_id: str) -> users.User:
-        pass
-
-
-class DDBUserRepository(UserRepository):
-    def __init__(self, ddb_resource, table_name: str):
+class UserRepository:
+    def __init__(
+        self,
+        table_name=Depends(get_table_name),
+        ddb_resource=Depends(get_ddb_resource),
+    ) -> None:
         self.table = ddb_resource.Table(table_name)
         self.table_name = table_name
         self.ddb_client = ddb_resource.meta.client
@@ -36,14 +26,7 @@ class DDBUserRepository(UserRepository):
                             "Item": {
                                 "pk": f"User#{user.id}",
                                 "sk": "PROFILE",
-                                "id": user.id,
-                                "email": user.email,
-                                "name": user.name,
-                                "password": user.password,
-                                "role": user.role.value
-                                if hasattr(user.role, "value")
-                                else user.role,
-                                "available": user.available,
+                                **user.model_dump(),
                             },
                         }
                     },
@@ -124,16 +107,7 @@ class DDBUserRepository(UserRepository):
                 status_code=status.HTTP_404_NOT_FOUND,
             )
 
-        return users.User(
-            id=item["id"],
-            email=item["email"],
-            name=item.get("name"),
-            password=item.get("password"),
-            role=users.Role(item["role"])
-            if hasattr(users, "Role")
-            else item.get("role"),
-            available=item.get("available", False),
-        )
+        return users.User(**item)
 
     def get_user_by_id(self, user_id: str) -> users.User:
         try:
@@ -162,12 +136,5 @@ class DDBUserRepository(UserRepository):
                 status_code=status.HTTP_404_NOT_FOUND,
             )
         return users.User(
-            id=item["id"],
-            email=item["email"],
-            name=item.get("name"),
-            password=item.get("password"),
-            role=users.Role(item["role"])
-            if hasattr(users, "Role")
-            else item.get("role"),
-            available=item.get("available", False),
+            **item,
         )

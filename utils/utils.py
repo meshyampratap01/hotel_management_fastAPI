@@ -1,6 +1,6 @@
 import bcrypt
 import os
-from fastapi import HTTPException, status
+from fastapi import status
 import jwt
 from dotenv import load_dotenv
 
@@ -26,8 +26,7 @@ def verify_password(password: str, hashed: str) -> bool:
 
 def generate_jwt(payload):
     try:
-        token = jwt.encode(
-            payload=payload, key=my_secret_key, algorithm="HS256")
+        token = jwt.encode(payload=payload, key=my_secret_key, algorithm="HS256")
         return token
     except Exception:
         raise AppException(

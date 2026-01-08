@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class Feedback(BaseModel):
@@ -13,3 +13,5 @@ class Feedback(BaseModel):
     rating: Optional[int] = Field(None, ge=1, le=5)
 
     created_at: datetime
+
+    model_config = ConfigDict(extra="ignore")

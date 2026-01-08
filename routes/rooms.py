@@ -1,21 +1,19 @@
 from fastapi import APIRouter, Depends, status
 from app_exception.app_exception import AppException
 from dependencies import (
-    get_room_service,
     require_roles,
 )
 from dtos.room_requests import AddRoomRequest, UpdateRoomRequest
 from models import rooms
-from models import roles
-from models.roles import Role
-from services import room_service
+from models.users import Role
+from services.room_service import RoomService
 
 room_router = APIRouter(prefix="/rooms")
 
 
 @room_router.get("/", status_code=status.HTTP_200_OK)
 def get_rooms_by_role(
-    room_service: room_service.RoomService = Depends(get_room_service),
+    room_service: RoomService = Depends(RoomService),
     current_user=Depends(require_roles(Role.GUEST.value, Role.MANAGER.value)),
 ):
     role = current_user.get("role")
@@ -36,8 +34,8 @@ def get_rooms_by_role(
 @room_router.post("/", status_code=status.HTTP_201_CREATED, response_model=rooms.Room)
 def add_room(
     add_room_request: AddRoomRequest,
-    _=Depends(require_roles(roles.Role.MANAGER)),
-    room_service=Depends(get_room_service),
+    _=Depends(require_roles(Role.MANAGER)),
+    room_service=Depends(RoomService),
 ):
     try:
         return room_service.add_room(add_room_request)
@@ -49,7 +47,7 @@ def add_room(
 def delete_room(
     room_num: int,
     _=Depends(require_roles("Manager")),
-    room_service=Depends(get_room_service),
+    room_service=Depends(RoomService),
 ):
     try:
         room_service.delete_room(room_num)
@@ -63,7 +61,7 @@ def update_room(
     update_room_request: UpdateRoomRequest,
     room_num: int,
     _=Depends(require_roles("Manager")),
-    room_service=Depends(get_room_service),
+    room_service=Depends(RoomService),
 ):
     try:
         room_service.update_room(room_num, update_room_request)

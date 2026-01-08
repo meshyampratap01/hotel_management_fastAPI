@@ -1,38 +1,18 @@
-from abc import ABC, abstractmethod
 from typing import List
 
 from boto3.dynamodb.conditions import Key
 from botocore.utils import ClientError
-from fastapi import status
+from fastapi import Depends, status
 
 from app_exception.app_exception import AppException
+from dependencies import get_ddb_resource, get_table_name
 from models import users
 
 
-class EmployeeRepository(ABC):
-    @abstractmethod
-    def create_employee(self, user: users.User) -> None:
-        pass
-
-    @abstractmethod
-    def get_employees(self) -> List[users.User]:
-        pass
-
-    @abstractmethod
-    def get_employee_by_id(self, employee_id: str) -> users.User:
-        pass
-
-    @abstractmethod
-    def update_employee_availability(self, employee_id: str, available: bool) -> None:
-        pass
-
-    @abstractmethod
-    def delete_employee(self, employee_id: str, email: str) -> None:
-        pass
-
-
-class DDBEmployeeRepository(EmployeeRepository):
-    def __init__(self, ddb_resource, table_name) -> None:
+class EmployeeRepository:
+    def __init__(
+        self, ddb_resource=Depends(get_ddb_resource), table_name=Depends(get_table_name)
+    ) -> None:
         self.table = ddb_resource.Table(table_name)
         self.table_name = table_name
         self.ddb_client = ddb_resource.meta.client
@@ -47,12 +27,7 @@ class DDBEmployeeRepository(EmployeeRepository):
                             "Item": {
                                 "pk": f"User#{user.id}",
                                 "sk": "PROFILE",
-                                "id": user.id,
-                                "email": user.email,
-                                "name": user.name,
-                                "password": user.password,
-                                "role": user.role,
-                                "available": user.available,
+                                **user.model_dump(),
                             },
                         }
                     },
@@ -103,8 +78,7 @@ class DDBEmployeeRepository(EmployeeRepository):
 
     def get_employees(self) -> List[users.User]:
         try:
-            response = self.table.query(
-                KeyConditionExpression=Key("pk").eq("Employee"))
+            response = self.table.query(KeyConditionExpression=Key("pk").eq("Employee"))
 
             items = response.get("Items", [])
 
@@ -156,7 +130,7 @@ class DDBEmployeeRepository(EmployeeRepository):
                 message="Failed to update employee",
             )
 
-    def get_employee_by_id(self, employee_id: str):
+    def get_employee_by_id(self, employee_id: str) -> users.User:
         try:
             response = self.table.get_item(
                 Key={"pk": "Employee", "sk": f"Employee#{employee_id}"}
@@ -171,7 +145,7 @@ class DDBEmployeeRepository(EmployeeRepository):
                 id=item["id"],
                 name=item["name"],
                 email=item["email"],
-                password="",  # never return password
+                password="",
                 role=item["role"],
                 available=item["available"],
             )

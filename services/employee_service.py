@@ -1,17 +1,19 @@
 from typing import List
 import uuid
-from fastapi import status
+from fastapi import Depends, status
 from app_exception.app_exception import AppException
-from dtos.employee_response import EmployeeResponse
+from dtos.employee_response import EmployeeResponseDTO
 from models import users
-from models.roles import Role
+from models.users import Role
 from repository.employee_repository import EmployeeRepository
 from dtos.employee_requests import CreateEmployeeRequest, UpdateEmployeeRequest
 from utils import utils
 
 
 class EmployeeService:
-    def __init__(self, employee_repo: EmployeeRepository) -> None:
+    def __init__(
+        self, employee_repo: EmployeeRepository = Depends(EmployeeRepository)
+    ) -> None:
         self.employee_repo = employee_repo
 
     def _create_employee(
@@ -19,7 +21,7 @@ class EmployeeService:
         name: str,
         email: str,
         password: str,
-        role: str,
+        role: Role,
     ) -> users.User:
         return users.User(
             id=str(uuid.uuid4()),
@@ -51,20 +53,11 @@ class EmployeeService:
         except Exception:
             raise
 
-    def get_employees(self) -> List[EmployeeResponse]:
+    def get_employees(self) -> List[EmployeeResponseDTO]:
         try:
             employees = self.employee_repo.get_employees()
 
-            return [
-                EmployeeResponse(
-                    id=e.id,
-                    name=e.name,
-                    email=e.email,
-                    role=e.role,
-                    available=e.available,
-                )
-                for e in employees
-            ]
+            return [EmployeeResponseDTO(**e.model_dump(mode="json")) for e in employees]
         except Exception:
             raise
 
@@ -80,8 +73,7 @@ class EmployeeService:
 
     def delete_employee(self, employee_id: str):
         try:
-            employee: users.User = self.employee_repo.get_employee_by_id(
-                employee_id)
+            employee: users.User = self.employee_repo.get_employee_by_id(employee_id)
 
             self.employee_repo.delete_employee(
                 employee_id=employee_id,

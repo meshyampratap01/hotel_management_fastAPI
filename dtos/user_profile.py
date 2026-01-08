@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr
-from models.roles import Role
+from models.users import Role
 
 
 class UserProfileDTO(BaseModel):

@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
-from dependencies import get_user_service
 from dtos.auth_requests import UserCreateRequest, UserLoginRequest
+from services.user_service import UserService
 from starlette import status
 
 auth_router = APIRouter(prefix="/auth")
 
 
 @auth_router.post("/signup", status_code=status.HTTP_201_CREATED)
-def sign_up(user_request: UserCreateRequest, user_service=Depends(get_user_service)):
+def sign_up(user_request: UserCreateRequest, user_service=Depends(UserService)):
     try:
         user_service.signup(request=user_request)
         return {"detail": "User successfully created, please login to continue"}
@@ -16,7 +16,7 @@ def sign_up(user_request: UserCreateRequest, user_service=Depends(get_user_servi
 
 
 @auth_router.post("/login", status_code=status.HTTP_200_OK)
-def login(login_request: UserLoginRequest, user_service=Depends(get_user_service)):
+def login(login_request: UserLoginRequest, user_service=Depends(UserService)):
     try:
         token = user_service.login(request=login_request)
         return {"token": token}

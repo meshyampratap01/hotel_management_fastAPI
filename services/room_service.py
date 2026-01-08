@@ -1,7 +1,6 @@
 import uuid
 from typing import List
-from botocore.utils import ClientError
-from fastapi import status
+from fastapi import Depends, status
 from app_exception.app_exception import AppException
 from dtos.room_requests import AddRoomRequest, UpdateRoomRequest
 from models import rooms
@@ -9,7 +8,7 @@ from repository.room_repository import RoomRepository
 
 
 class RoomService:
-    def __init__(self, room_repo: RoomRepository):
+    def __init__(self, room_repo: RoomRepository = Depends(RoomRepository)) -> None:
         self.room_repo = room_repo
 
     def get_all_rooms(self) -> List[rooms.Room]:

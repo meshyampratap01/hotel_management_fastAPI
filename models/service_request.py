@@ -1,5 +1,7 @@
-from dataclasses import dataclass
 from enum import Enum
+from typing import Optional
+from datetime import datetime
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class ServiceType(str, Enum):
@@ -12,14 +14,20 @@ class ServiceStatus(str, Enum):
     DONE = "Done"
 
 
-@dataclass
-class ServiceRequest:
-    id: str
-    user_id: str
-    booking_id: str
-    room_num: int
+class ServiceRequest(BaseModel):
+    id: str = Field(..., min_length=1)
+    user_id: str = Field(..., min_length=1)
+    booking_id: str = Field(..., min_length=1)
+
+    room_num: int = Field(..., ge=1)
+
     type: ServiceType
     status: ServiceStatus
+
     is_assigned: bool
-    assigned_to: str | None
-    details: str
+    created_at: datetime
+    assigned_to: Optional[str] = None
+
+    details: str = Field(..., min_length=1)
+
+    model_config = ConfigDict(extra="ignore")

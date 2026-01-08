@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, status
 
-from dependencies import get_user_service, require_roles
+from services.user_service import UserService
+from dependencies import require_roles
 from dtos.user_profile import UserProfileDTO
-from models.roles import Role
+from models.users import Role
 
 router = APIRouter(prefix="/profile")
 
@@ -17,7 +18,7 @@ def get_profile(
             Role.CLEANING_STAFF.value,
         ),
     ),
-    user_service=Depends(get_user_service),
+    user_service: UserService = Depends(UserService),
 ):
     profile = user_service.get_profile(current_user.get("sub"))
     return profile

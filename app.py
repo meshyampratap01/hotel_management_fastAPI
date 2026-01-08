@@ -1,17 +1,9 @@
-from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from app_exception.app_exception import AppException
 from routes import auth, bookings, employees, feedbacks, profile, rooms, service_request
-import boto3
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    ddb_resource = boto3.resource("dynamodb")
-    app.state.ddb_resource = ddb_resource
-    yield
+from dependencies import lifespan
 
 
 app = FastAPI(lifespan=lifespan)

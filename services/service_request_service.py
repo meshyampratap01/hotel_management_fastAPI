@@ -1,8 +1,11 @@
 import uuid
+from datetime import datetime
 
-from fastapi import status
+from fastapi import Depends, status
+from typing import List
 from app_exception.app_exception import AppException
 from dtos.service_request import (
+    AssignedPendingServiceRequestDTO,
     CreateServiceRequest,
     UpdateServiceRequestStatus,
     assign_service_request_dto,
@@ -17,9 +20,11 @@ from repository.user_repository import UserRepository
 class ServiceRequestService:
     def __init__(
         self,
-        service_request_repo: ServiceRequestRepository,
-        booking_repo: BookingRepository,
-        user_repo: UserRepository,
+        service_request_repo: ServiceRequestRepository = Depends(
+            ServiceRequestRepository
+        ),
+        booking_repo: BookingRepository = Depends(BookingRepository),
+        user_repo: UserRepository = Depends(UserRepository),
     ):
         self.service_request_repo = service_request_repo
         self.booking_repo = booking_repo
@@ -32,6 +37,7 @@ class ServiceRequestService:
         details: str,
         user_id: str,
         booking_id: str,
+        created_at: datetime,
     ):
         return ServiceRequest(
             id=str(uuid.uuid4()),
@@ -43,6 +49,7 @@ class ServiceRequestService:
             status=ServiceStatus.PENDING,
             is_assigned=False,
             assigned_to=None,
+            created_at=created_at,
         )
 
     def save_service_request(self, request: CreateServiceRequest, current_user):
@@ -73,9 +80,10 @@ class ServiceRequestService:
         type = request.type
         details = request.details
         booking_id = valid_booking.id
+        created_at = datetime.now()
 
         service_request = self._create_service_request(
-            room_num, type, details, user_id, booking_id
+            room_num, type, details, user_id, booking_id, created_at
         )
 
         try:
@@ -113,7 +121,18 @@ class ServiceRequestService:
     def get_assigned_service_requests(self, current_user):
         employee_id = current_user.get("sub")
         try:
-            return self.service_request_repo.get_assigned_service_requests(employee_id)
+            response: List[ServiceRequest] = (
+                self.service_request_repo.get_assigned_service_requests(employee_id)
+            )
+            return [
+                AssignedPendingServiceRequestDTO(
+                    service_request_id=resp.id,
+                    user_id=resp.user_id,
+                    room_num=resp.room_num,
+                    status=resp.status,
+                )
+                for resp in response
+            ]
         except Exception:
             raise
 

@@ -1,65 +1,21 @@
+from contextlib import asynccontextmanager
 import os
 from typing import Callable
+
+import boto3
 from dotenv import load_dotenv
-from fastapi import Depends, HTTPException, Request, status
-from repository.employee_repository import DDBEmployeeRepository
-from repository.feedback_repository import DDBFeedbackRepository
-from repository.service_request_repository import DDBServiceRequestRepository
-from repository.user_repository import DDBUserRepository
-from repository.booking_repository import DDBBookingRepository
-from services.booking_service import BookingService
-from services.employee_service import EmployeeService
-from services.feedback_service import FeedbackService
-from services.room_service import RoomService
-from services.service_request_service import ServiceRequestService
-from services.user_service import UserService
+from fastapi import FastAPI, HTTPException, Request, status
+
 from utils import utils
-from repository.room_repository import DDBRoomRepository
-
-load_dotenv()
-table_name = str(os.getenv("table_name"))
 
 
-def get_ddb_resource(req: Request):
-    return req.app.state.ddb_resource
-
-
-def get_user_service(ddb_resource=Depends(get_ddb_resource)) -> UserService:
-    user_repo = DDBUserRepository(ddb_resource, table_name=table_name)
-    return UserService(user_repo=user_repo)
-
-
-def get_room_service(ddb_resource=Depends(get_ddb_resource)) -> RoomService:
-    room_repo = DDBRoomRepository(ddb_resource, table_name)
-    return RoomService(room_repo)
-
-
-def get_booking_service(ddb_resource=Depends(get_ddb_resource)) -> BookingService:
-    booking_repo = DDBBookingRepository(ddb_resource, table_name)
-    room_repo = DDBRoomRepository(ddb_resource, table_name)
-    return BookingService(booking_repo, room_repo)
-
-
-def get_employee_service(ddb_resource=Depends(get_ddb_resource)) -> EmployeeService:
-    employee_repo = DDBEmployeeRepository(ddb_resource, table_name)
-    return EmployeeService(employee_repo)
-
-
-def get_service_request_service(
-    ddb_resource=Depends(get_ddb_resource),
-) -> ServiceRequestService:
-    service_request_repo = DDBServiceRequestRepository(
-        ddb_resource, table_name)
-    booking_repo = DDBBookingRepository(ddb_resource, table_name)
-    user_repo = DDBUserRepository(ddb_resource, table_name)
-    return ServiceRequestService(service_request_repo, booking_repo, user_repo)
-
-
-def get_feedback_service(
-    ddb_resource=Depends(get_ddb_resource),
-) -> FeedbackService:
-    feedback_repo = DDBFeedbackRepository(ddb_resource, table_name)
-    return FeedbackService(feedback_repo)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    load_dotenv()
+    ddb_resource = boto3.resource("dynamodb")
+    app.state.ddb_resource = ddb_resource
+    app.state.table_name = str(os.getenv("table_name"))
+    yield
 
 
 def get_token(request: Request) -> str:
@@ -88,3 +44,11 @@ def require_roles(*allowed_roles: str) -> Callable:
         return payload
 
     return role_checker
+
+
+def get_ddb_resource(req: Request):
+    return req.app.state.ddb_resource
+
+
+def get_table_name(req: Request):
+    return req.app.state.table_name

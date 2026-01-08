@@ -1,15 +1,15 @@
 import uuid
-from datetime import datetime, timedelta, timezone
-from fastapi import HTTPException, status
+from datetime import datetime, timezone
+from fastapi import status, Depends
 from app_exception.app_exception import AppException
-from models import users, roles
+from models import users
 from dtos.auth_requests import UserCreateRequest, UserLoginRequest
 from utils import utils
-from repository import user_repository
+from repository.user_repository import UserRepository
 
 
 class UserService:
-    def __init__(self, user_repo: user_repository.UserRepository):
+    def __init__(self, user_repo: UserRepository = Depends(UserRepository)) -> None:
         self.user_repo = user_repo
 
     def _create_user(
@@ -17,7 +17,7 @@ class UserService:
         name: str,
         email: str,
         password: str,
-        role: str = roles.Role.GUEST.value,
+        role: users.Role = users.Role.GUEST,
     ) -> users.User:
         return users.User(
             id=str(uuid.uuid4()),
@@ -66,7 +66,6 @@ class UserService:
             "user_name": user.name,
             "role": user.role,
             "iat": datetime.now(tz=timezone.utc),
-            "exp": datetime.now(tz=timezone.utc) + timedelta(minutes=60),
         }
 
         try:

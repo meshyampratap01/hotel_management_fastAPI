@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
-from models.roles import Role
+from models.users import Role
 from dtos.service_request import CreateServiceRequest, assign_service_request_dto
-from dependencies import get_service_request_service, require_roles
+from dependencies import require_roles
 from services.service_request_service import ServiceRequestService
 
 service_request_router = APIRouter(prefix="/service-requests")
@@ -12,8 +12,7 @@ def create_service_request(
     create_service_request: CreateServiceRequest,
     current_user=Depends(require_roles(Role.GUEST.value)),
     service_request_service: ServiceRequestService = Depends(
-        get_service_request_service
-    ),
+        ServiceRequestService),
 ):
     try:
         service_request_service.save_service_request(
@@ -28,8 +27,7 @@ def create_service_request(
 def get_pending_service_request_by_role(
     current_user=Depends(require_roles(Role.MANAGER.value, Role.GUEST.value)),
     service_request_service: ServiceRequestService = Depends(
-        get_service_request_service
-    ),
+        ServiceRequestService),
 ):
     role = current_user.get("role")
     try:
@@ -47,8 +45,7 @@ def assign_service_request(
     service_request_id: str,
     _=Depends(require_roles(Role.MANAGER.value)),
     service_request_service: ServiceRequestService = Depends(
-        get_service_request_service
-    ),
+        ServiceRequestService),
 ):
     try:
         service_request_service.assign_service_request(

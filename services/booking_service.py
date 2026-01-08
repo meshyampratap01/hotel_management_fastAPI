@@ -1,12 +1,11 @@
 import uuid
 from typing import List
 
-from fastapi import status
+from fastapi import Depends, status
 
 from app_exception.app_exception import AppException
 from dtos.booking_requests import CreateBookingRequest
-from models.bookings import Booking
-from models.booking_status import BookingStatus
+from models.bookings import Booking, BookingStatus
 from repository.booking_repository import BookingRepository
 from repository.room_repository import RoomRepository
 
@@ -14,8 +13,8 @@ from repository.room_repository import RoomRepository
 class BookingService:
     def __init__(
         self,
-        booking_repo: BookingRepository,
-        room_repo: RoomRepository,
+        booking_repo: BookingRepository = Depends(BookingRepository),
+        room_repo: RoomRepository = Depends(RoomRepository),
     ):
         self.booking_repo = booking_repo
         self.room_repo = room_repo
@@ -54,7 +53,7 @@ class BookingService:
             room_num=room_number,
             check_in=check_in,
             check_out=check_out,
-            status=BookingStatus.Booking_Status_Booked.value,
+            status=BookingStatus.Booking_Status_Booked,
             food_req=False,
             clean_req=False,
         )
@@ -79,7 +78,7 @@ class BookingService:
                 status_code=status.HTTP_409_CONFLICT,
             )
 
-        booking.status = BookingStatus.Booking_Status_Cancelled.value
+        booking.status = BookingStatus.Booking_Status_Cancelled
 
         try:
             self.room_repo.update_room_availability(booking.room_num, True)
