@@ -7,7 +7,7 @@ from models import users
 from models.users import Role
 from repository.employee_repository import EmployeeRepository
 from dtos.employee_requests import CreateEmployeeRequest, UpdateEmployeeRequest
-from utils import utils
+from utils import auth
 
 
 class EmployeeService:
@@ -27,12 +27,12 @@ class EmployeeService:
             id=str(uuid.uuid4()),
             name=name,
             email=email,
-            password=utils.hash_password(password),
+            password=auth.hash_password(password),
             role=role,
             available=True,
         )
 
-    def create_employee(self, create_employee_request: CreateEmployeeRequest):
+    def create_employee(self, create_employee_request: CreateEmployeeRequest) -> None:
         emp_role = create_employee_request.role
 
         if emp_role not in {Role.KITCHEN_STAFF, Role.CLEANING_STAFF, Role.MANAGER}:
@@ -48,36 +48,24 @@ class EmployeeService:
             create_employee_request.role,
         )
 
-        try:
-            self.employee_repo.create_employee(new_emp)
-        except Exception:
-            raise
+        self.employee_repo.create_employee(new_emp)
 
     def get_employees(self) -> List[EmployeeResponseDTO]:
-        try:
-            employees = self.employee_repo.get_employees()
+        employees = self.employee_repo.get_employees()
 
-            return [EmployeeResponseDTO(**e.model_dump(mode="json")) for e in employees]
-        except Exception:
-            raise
+        return [EmployeeResponseDTO(**e.model_dump(mode="json")) for e in employees]
 
     def update_employee_availability(
         self, employee_id: str, update_employee_request: UpdateEmployeeRequest
-    ):
-        try:
-            self.employee_repo.update_employee_availability(
-                employee_id=employee_id, available=update_employee_request.available
-            )
-        except Exception:
-            raise
+    ) -> None:
+        self.employee_repo.update_employee_availability(
+            employee_id=employee_id, available=update_employee_request.available
+        )
 
-    def delete_employee(self, employee_id: str):
-        try:
-            employee: users.User = self.employee_repo.get_employee_by_id(employee_id)
+    def delete_employee(self, employee_id: str) -> None:
+        employee: users.User = self.employee_repo.get_employee_by_id(employee_id)
 
-            self.employee_repo.delete_employee(
-                employee_id=employee_id,
-                email=employee.email,
-            )
-        except Exception:
-            raise
+        self.employee_repo.delete_employee(
+            employee_id=employee_id,
+            email=employee.email,
+        )

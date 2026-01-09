@@ -1,10 +1,11 @@
 import uuid
 from datetime import datetime, timezone
 from fastapi import status, Depends
+from dtos.user_profile import UserProfileDTO
 from app_exception.app_exception import AppException
 from models import users
 from dtos.auth_requests import UserCreateRequest, UserLoginRequest
-from utils import utils
+from utils import auth, jwt
 from repository.user_repository import UserRepository
 
 
@@ -23,7 +24,7 @@ class UserService:
             id=str(uuid.uuid4()),
             name=name,
             email=email,
-            password=utils.hash_password(password),
+            password=auth.hash_password(password),
             role=role,
             available=False,
         )
@@ -55,7 +56,7 @@ class UserService:
         except AppException:
             raise
 
-        if not utils.verify_password(request.password, user.password):
+        if not auth.verify_password(request.password, user.password):
             raise AppException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 message="Invalid email or password",
@@ -69,12 +70,17 @@ class UserService:
         }
 
         try:
-            return utils.generate_jwt(payload)
+            return jwt.generate_jwt(payload)
         except AppException:
             raise
 
-    def get_profile(self, user_id: str) -> users.User:
-        try:
-            return self.user_repo.get_user_by_id(user_id)
-        except AppException:
-            raise
+    def get_profile(self, user_id: str) -> UserProfileDTO:
+        user = self.user_repo.get_user_by_id(user_id)
+
+        return UserProfileDTO(
+            id=user.id,
+            name=user.name,
+            email=user.email,
+            role=user.role,
+            available=user.available,
+        )

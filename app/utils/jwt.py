@@ -1,4 +1,3 @@
-import bcrypt
 import os
 from fastapi import status
 import jwt
@@ -9,19 +8,6 @@ from app_exception.app_exception import AppException
 
 load_dotenv()
 my_secret_key = str(os.getenv("my_secret_key"))
-
-
-def hash_password(password: str) -> str:
-    salt = bcrypt.gensalt()
-    hashed = bcrypt.hashpw(password.encode("utf-8"), salt)
-    return hashed.decode("utf-8")
-
-
-def verify_password(password: str, hashed: str) -> bool:
-    return bcrypt.checkpw(
-        password.encode("utf-8"),
-        hashed.encode("utf-8"),
-    )
 
 
 def generate_jwt(payload):

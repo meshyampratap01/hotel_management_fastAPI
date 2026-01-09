@@ -28,10 +28,7 @@ class BookingService:
         check_in = request.check_in_date
         check_out = request.check_out_date
 
-        try:
-            room = self.room_repo.get_room_by_number(room_number)
-        except AppException:
-            raise
+        room = self.room_repo.get_room_by_number(room_number)
 
         if not room.is_available:
             raise AppException(
@@ -80,15 +77,8 @@ class BookingService:
 
         booking.status = BookingStatus.Booking_Status_Cancelled
 
-        try:
-            self.room_repo.update_room_availability(booking.room_num, True)
-            self.booking_repo.update_booking(booking)
-
-        except AppException:
-            raise
+        self.room_repo.update_room_availability(booking.room_num, True)
+        self.booking_repo.update_booking(booking)
 
     def get_active_bookings_by_user(self, user_id: str) -> List[Booking]:
-        try:
-            return self.booking_repo.get_bookings_by_userID(user_id)
-        except AppException:
-            raise
+        return self.booking_repo.get_bookings_by_userID(user_id)

@@ -6,7 +6,7 @@ import boto3
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request, status
 
-from utils import utils
+from utils import jwt
 
 
 @asynccontextmanager
@@ -30,7 +30,7 @@ def require_roles(*allowed_roles: str) -> Callable:
         token = get_token(request)
 
         try:
-            payload = utils.verify_jwt(token)
+            payload = jwt.verify_jwt(token)
         except HTTPException:
             raise
 

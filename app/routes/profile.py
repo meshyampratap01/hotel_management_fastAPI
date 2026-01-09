@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, status
 
+from response.response import APIResponse
 from services.user_service import UserService
 from dependencies import require_roles
 from dtos.user_profile import UserProfileDTO
@@ -8,7 +9,7 @@ from models.users import Role
 router = APIRouter(prefix="/profile")
 
 
-@router.get("/", status_code=status.HTTP_200_OK, response_model=UserProfileDTO)
+@router.get("/", status_code=status.HTTP_200_OK, response_model=APIResponse)
 def get_profile(
     current_user=Depends(
         require_roles(
@@ -20,5 +21,9 @@ def get_profile(
     ),
     user_service: UserService = Depends(UserService),
 ):
-    profile = user_service.get_profile(current_user.get("sub"))
-    return profile
+    profile: UserProfileDTO = user_service.get_profile(current_user.get("sub"))
+    return APIResponse(
+        status_code=status.HTTP_200_OK,
+        message="Profile Fetched Successfully",
+        data=profile,
+    )

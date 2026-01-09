@@ -12,16 +12,10 @@ class RoomService:
         self.room_repo = room_repo
 
     def get_all_rooms(self) -> List[rooms.Room]:
-        try:
-            return self.room_repo.get_all_rooms()
-        except AppException:
-            raise
+        return self.room_repo.get_all_rooms()
 
     def get_available_rooms(self) -> List[rooms.Room]:
-        try:
-            return self.room_repo.get_available_rooms()
-        except AppException:
-            raise
+        return self.room_repo.get_available_rooms()
 
     def add_room(self, request: AddRoomRequest) -> rooms.Room:
         new_room = rooms.Room(
@@ -33,28 +27,26 @@ class RoomService:
             description=request.description,
         )
 
-        try:
-            self.room_repo.add_room(new_room)
-            return new_room
-        except AppException:
-            raise
+        self.room_repo.add_room(new_room)
+        return new_room
 
     def delete_room(self, room_num: int) -> None:
-        try:
-            room: rooms.Room = self.room_repo.get_room_by_number(room_num)
+        room: rooms.Room = self.room_repo.get_room_by_number(room_num)
 
-            if not room.is_available:
-                raise AppException(
-                    message="Room is booked and cannot be deleted",
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                )
+        if not room.is_available:
+            raise AppException(
+                message="Room is booked and cannot be deleted",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
 
-            self.room_repo.delete_room(room_num)
-
-        except AppException:
-            raise
+        self.room_repo.delete_room(room_num)
 
     def update_room(self, room_num: int, data: UpdateRoomRequest) -> None:
+        if len(data.model_dump(exclude_unset=True)) == 0:
+            raise AppException(
+                message="No fields provided for update",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
         update_fields = {}
 
         if data.type is not None:
@@ -75,11 +67,4 @@ class RoomService:
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
 
-        try:
-            self.room_repo.update_room(room_num, update_fields)
-
-        except AppException:
-            raise AppException(
-                message="Failed to update room",
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+        self.room_repo.update_room(room_num, update_fields)

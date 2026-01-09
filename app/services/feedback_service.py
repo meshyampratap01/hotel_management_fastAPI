@@ -12,7 +12,7 @@ class FeedbackService:
     def __init__(self, feedback_repo: FeedbackRepository = Depends(FeedbackRepository)):
         self.feedback_repo = feedback_repo
 
-    def save_feedback(self, request: CreateFeedbackDTO, current_user):
+    def save_feedback(self, request: CreateFeedbackDTO, current_user) -> None:
         new_feedback = Feedback(
             id=str(uuid.uuid4()),
             user_id=current_user.get("sub"),
@@ -21,22 +21,14 @@ class FeedbackService:
             message=request.message,
             created_at=datetime.now(),
         )
-        try:
-            self.feedback_repo.save_feedback(new_feedback)
-        except Exception:
-            raise
+        self.feedback_repo.save_feedback(new_feedback)
 
-    def get_all_feedbacks(self):
-        try:
-            return self.feedback_repo.get_all_feedbacks()
-        except Exception:
-            raise
+    def get_all_feedbacks(self) -> List[Feedback]:
+        feedbacks = self.feedback_repo.get_all_feedbacks()
+        return feedbacks
 
-    def delete_feedback(self, feedback_id: str):
-        try:
-            self.feedback_repo.delete_feedback(feedback_id)
-        except Exception:
-            raise
+    def delete_feedback(self, feedback_id: str) -> None:
+        self.feedback_repo.delete_feedback(feedback_id)
 
     def get_feedback_by_id(self, current_user) -> List[Feedback]:
         user_id = current_user.get("sub")
