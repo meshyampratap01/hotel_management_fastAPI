@@ -2,9 +2,9 @@ from typing import List
 from boto3.dynamodb.conditions import Attr, Key
 from botocore.utils import ClientError
 from fastapi import Depends, status
-from app_exception.app_exception import AppException
-from dependencies import get_ddb_resource, get_table_name
-from models import bookings
+from app.app_exception.app_exception import AppException
+from app.dependencies import get_ddb_resource, get_table_name
+from app.models import bookings
 
 
 class BookingRepository:

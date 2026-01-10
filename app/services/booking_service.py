@@ -3,11 +3,11 @@ from typing import List
 
 from fastapi import Depends, status
 
-from app_exception.app_exception import AppException
-from dtos.booking_requests import CreateBookingRequest
-from models.bookings import Booking, BookingStatus
-from repository.booking_repository import BookingRepository
-from repository.room_repository import RoomRepository
+from app.app_exception.app_exception import AppException
+from app.dtos.booking_requests import CreateBookingRequest
+from app.models.bookings import Booking, BookingStatus
+from app.repository.booking_repository import BookingRepository
+from app.repository.room_repository import RoomRepository
 
 
 class BookingService:

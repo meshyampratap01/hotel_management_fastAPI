@@ -1,7 +1,7 @@
 from typing import Optional
 from typing_extensions import Annotated
 from pydantic import BaseModel, Field
-from models.rooms import RoomType
+from app.models.rooms import RoomType
 
 
 class AddRoomRequest(BaseModel):

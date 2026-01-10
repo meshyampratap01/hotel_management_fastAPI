@@ -3,7 +3,7 @@ from fastapi import status
 import jwt
 from dotenv import load_dotenv
 
-from app_exception.app_exception import AppException
+from app.app_exception.app_exception import AppException
 
 
 load_dotenv()

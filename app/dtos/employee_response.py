@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict
-from models.users import Role
+from app.models.users import Role
 
 
 class EmployeeResponseDTO(BaseModel):

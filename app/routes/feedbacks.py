@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, status
-from response.response import APIResponse
+from app.response.response import APIResponse
 
-from dependencies import require_roles
-from dtos.feedback_dtos import CreateFeedbackDTO
-from models.users import Role
-from services.feedback_service import FeedbackService
+from app.dependencies import require_roles
+from app.dtos.feedback_dtos import CreateFeedbackDTO
+from app.models.users import Role
+from app.services.feedback_service import FeedbackService
 
 router = APIRouter(prefix="/feedbacks")
 

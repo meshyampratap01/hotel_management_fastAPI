@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, status
-from response.response import APIResponse
-from models.users import Role
-from dtos.service_request import CreateServiceRequest, assign_service_request_dto
-from dependencies import require_roles
-from services.service_request_service import ServiceRequestService
+from app.response.response import APIResponse
+from app.models.users import Role
+from app.dtos.service_request import CreateServiceRequest, assign_service_request_dto
+from app.dependencies import require_roles
+from app.services.service_request_service import ServiceRequestService
 
 service_request_router = APIRouter(prefix="/service-requests")
 

@@ -3,18 +3,18 @@ from datetime import datetime
 
 from fastapi import Depends, status
 from typing import List
-from app_exception.app_exception import AppException
-from dtos.service_request import (
+from app.app_exception.app_exception import AppException
+from app.dtos.service_request import (
     AssignedPendingServiceRequestDTO,
     CreateServiceRequest,
     UpdateServiceRequestStatus,
     assign_service_request_dto,
 )
-from models.bookings import Booking
-from models.service_request import ServiceStatus, ServiceType, ServiceRequest
-from repository.booking_repository import BookingRepository
-from repository.service_request_repository import ServiceRequestRepository
-from repository.user_repository import UserRepository
+from app.models.bookings import Booking
+from app.models.service_request import ServiceStatus, ServiceType, ServiceRequest
+from app.repository.booking_repository import BookingRepository
+from app.repository.service_request_repository import ServiceRequestRepository
+from app.repository.user_repository import UserRepository
 
 
 class ServiceRequestService:
@@ -63,7 +63,7 @@ class ServiceRequestService:
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
 
-        valid_booking: Booking
+        valid_booking: Booking | None = None
         is_valid_room_num = False
         for booking in bookings:
             if booking.room_num == room_num:
@@ -71,7 +71,7 @@ class ServiceRequestService:
                 valid_booking = booking
                 break
 
-        if is_valid_room_num is False:
+        if not is_valid_room_num or valid_booking is None:
             raise AppException(
                 message="Invalid room number",
                 status_code=status.HTTP_400_BAD_REQUEST,

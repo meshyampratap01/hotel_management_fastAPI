@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from models.service_request import ServiceStatus, ServiceType
+from app.models.service_request import ServiceStatus, ServiceType
 
 
 class CreateServiceRequest(BaseModel):
@@ -7,13 +7,13 @@ class CreateServiceRequest(BaseModel):
         ...,
         gt=0,
         description="Room number must be positive",
-        example=101,
+        examples=[101],
     )
 
     type: ServiceType = Field(
         ...,
         description="Type of service requested",
-        example="Cleaning",
+        examples=["Cleaning", "Food"],
     )
 
     details: str = Field(
@@ -21,7 +21,7 @@ class CreateServiceRequest(BaseModel):
         min_length=1,
         max_length=500,
         description="Additional details for the service request",
-        example="AC is not working",
+        examples=["Clean the room", "Deliver food"],
     )
 
 

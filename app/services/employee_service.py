@@ -1,13 +1,13 @@
 from typing import List
 import uuid
 from fastapi import Depends, status
-from app_exception.app_exception import AppException
-from dtos.employee_response import EmployeeResponseDTO
-from models import users
-from models.users import Role
-from repository.employee_repository import EmployeeRepository
-from dtos.employee_requests import CreateEmployeeRequest, UpdateEmployeeRequest
-from utils import auth
+from app.app_exception.app_exception import AppException
+from app.dtos.employee_response import EmployeeResponseDTO
+from app.models import users
+from app.models.users import Role
+from app.repository.employee_repository import EmployeeRepository
+from app.dtos.employee_requests import CreateEmployeeRequest, UpdateEmployeeRequest
+from app.utils import auth
 
 
 class EmployeeService:

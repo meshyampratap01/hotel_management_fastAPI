@@ -1,10 +1,10 @@
 import uuid
 from typing import List
 from fastapi import Depends, status
-from app_exception.app_exception import AppException
-from dtos.room_requests import AddRoomRequest, UpdateRoomRequest
-from models import rooms
-from repository.room_repository import RoomRepository
+from app.app_exception.app_exception import AppException
+from app.dtos.room_requests import AddRoomRequest, UpdateRoomRequest
+from app.models import rooms
+from app.repository.room_repository import RoomRepository
 
 
 class RoomService:

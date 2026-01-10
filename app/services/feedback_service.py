@@ -3,9 +3,9 @@ import uuid
 from datetime import datetime
 
 from fastapi import Depends
-from dtos.feedback_dtos import CreateFeedbackDTO
-from models.feedbacks import Feedback
-from repository.feedback_repository import FeedbackRepository
+from app.dtos.feedback_dtos import CreateFeedbackDTO
+from app.models.feedbacks import Feedback
+from app.repository.feedback_repository import FeedbackRepository
 
 
 class FeedbackService:

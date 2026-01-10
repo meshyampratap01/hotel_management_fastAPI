@@ -6,7 +6,7 @@ import boto3
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request, status
 
-from utils import jwt
+from app.utils import jwt
 
 
 @asynccontextmanager

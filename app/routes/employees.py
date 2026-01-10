@@ -1,16 +1,16 @@
 from fastapi import APIRouter, Depends, status
-from dependencies import (
+from app.dependencies import (
     require_roles,
 )
-from response.response import APIResponse
-from dtos.service_request import (
+from app.response.response import APIResponse
+from app.dtos.service_request import (
     UpdateServiceRequestStatus,
 )
-from models.users import Role
+from app.models.users import Role
 
-from dtos.employee_requests import CreateEmployeeRequest, UpdateEmployeeRequest
-from services.employee_service import EmployeeService
-from services.service_request_service import ServiceRequestService
+from app.dtos.employee_requests import CreateEmployeeRequest, UpdateEmployeeRequest
+from app.services.employee_service import EmployeeService
+from app.services.service_request_service import ServiceRequestService
 
 employee_router = APIRouter(prefix="/employees")
 

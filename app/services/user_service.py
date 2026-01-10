@@ -1,12 +1,12 @@
 import uuid
 from datetime import datetime, timezone
 from fastapi import status, Depends
-from dtos.user_profile import UserProfileDTO
-from app_exception.app_exception import AppException
-from models import users
-from dtos.auth_requests import UserCreateRequest, UserLoginRequest
-from utils import auth, jwt
-from repository.user_repository import UserRepository
+from app.dtos.user_profile import UserProfileDTO
+from app.app_exception.app_exception import AppException
+from app.models import users
+from app.dtos.auth_requests import UserCreateRequest, UserLoginRequest
+from app.utils import auth, jwt
+from app.repository.user_repository import UserRepository
 
 
 class UserService:

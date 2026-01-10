@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, status
 
-from response.response import APIResponse
-from services.user_service import UserService
-from dependencies import require_roles
-from dtos.user_profile import UserProfileDTO
-from models.users import Role
+from app.response.response import APIResponse
+from app.services.user_service import UserService
+from app.dependencies import require_roles
+from app.dtos.user_profile import UserProfileDTO
+from app.models.users import Role
 
 router = APIRouter(prefix="/profile")
 

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, Field
-from models.users import Role
+from app.models.users import Role
 
 
 class CreateEmployeeRequest(BaseModel):

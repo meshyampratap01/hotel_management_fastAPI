@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, status
-from response.response import APIResponse
-from dependencies import (
+from app.response.response import APIResponse
+from app.dependencies import (
     require_roles,
 )
-from dtos.booking_requests import CreateBookingRequest
-from models.users import Role
-from services.booking_service import BookingService
+from app.dtos.booking_requests import CreateBookingRequest
+from app.models.users import Role
+from app.services.booking_service import BookingService
 
 booking_router = APIRouter(prefix="/bookings")
 

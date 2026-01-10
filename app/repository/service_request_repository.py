@@ -1,11 +1,11 @@
 from typing import List
 
 from boto3.dynamodb.conditions import Key
-from app_exception.app_exception import AppException
+from app.app_exception.app_exception import AppException
 from fastapi import Depends, status
 from botocore.utils import ClientError
-from dependencies import get_ddb_resource, get_table_name
-from models.service_request import ServiceRequest, ServiceStatus
+from app.dependencies import get_ddb_resource, get_table_name
+from app.models.service_request import ServiceRequest, ServiceStatus
 
 
 class ServiceRequestRepository:

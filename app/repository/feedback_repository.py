@@ -1,9 +1,9 @@
 from typing import List
 from boto3.dynamodb.conditions import Key
-from dependencies import get_ddb_resource, get_table_name
-from models.feedbacks import Feedback
+from app.dependencies import get_ddb_resource, get_table_name
+from app.models.feedbacks import Feedback
 from botocore.utils import ClientError
-from app_exception.app_exception import AppException
+from app.app_exception.app_exception import AppException
 from fastapi import Depends, status
 
 

@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, status
-from response.response import APIResponse
-from dependencies import (
+from app.response.response import APIResponse
+from app.dependencies import (
     require_roles,
 )
-from dtos.room_requests import AddRoomRequest, UpdateRoomRequest
-from models.users import Role
-from services.room_service import RoomService
+from app.dtos.room_requests import AddRoomRequest, UpdateRoomRequest
+from app.models.users import Role
+from app.services.room_service import RoomService
 
 room_router = APIRouter(prefix="/rooms")
 
