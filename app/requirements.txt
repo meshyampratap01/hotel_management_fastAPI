@@ -1,0 +1,8 @@
+boto3==1.42.19
+botocore==1.42.19
+fastapi==0.128.0
+pydantic==2.12.5
+python-dotenv==1.2.1
+python_bcrypt==0.3.2
+starlette==0.51.0
+typing_extensions==4.15.0
