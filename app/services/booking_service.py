@@ -76,9 +76,12 @@ class BookingService:
             )
 
         booking.status = BookingStatus.Booking_Status_Cancelled
-
         self.room_repo.update_room_availability(booking.room_num, True)
         self.booking_repo.update_booking(booking)
+
+        # if booking.clean_req or booking.food_req:
+        #     event_publisher = BookingEventPublisher()
+        #     event_publisher.publish_booking_cancelled(booking)
 
     def get_active_bookings_by_user(self, user_id: str) -> List[Booking]:
         return self.booking_repo.get_bookings_by_userID(user_id)

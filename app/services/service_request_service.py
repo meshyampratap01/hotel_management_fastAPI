@@ -77,6 +77,19 @@ class ServiceRequestService:
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
 
+        if request.type == ServiceType.FOOD and not valid_booking.food_req:
+            valid_booking.food_req = True
+
+        elif request.type == ServiceType.CLEANING and not valid_booking.clean_req:
+            valid_booking.clean_req = True
+        else:
+            raise AppException(
+                message="Service Request already exists",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        self.booking_repo.update_booking(valid_booking)
+
         type = request.type
         details = request.details
         booking_id = valid_booking.id
@@ -119,6 +132,8 @@ class ServiceRequestService:
                 user_id=resp.user_id,
                 room_num=resp.room_num,
                 status=resp.status,
+                type=resp.type,
+                details=resp.details,
             )
             for resp in response
         ]
@@ -141,3 +156,10 @@ class ServiceRequestService:
         self.service_request_repo.update_service_request(
             service_request_id, update_status
         )
+        booking_id = req.booking_id
+        booking = self.booking_repo.get_booking_by_ID(booking_id)
+        if req.type == ServiceType.FOOD:
+            booking.food_req = False
+        else:
+            booking.clean_req = False
+        self.booking_repo.update_booking(booking)

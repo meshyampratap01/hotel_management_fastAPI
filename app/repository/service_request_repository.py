@@ -19,6 +19,7 @@ class ServiceRequestRepository:
     def save_service_request(self, service_request: ServiceRequest) -> None:
         sk1 = f"Service#{service_request.status.value}#{service_request.id}"
         sk2 = f"Made#{service_request.status.value}#{service_request.id}"
+        sk3 = f"Service#{service_request.id}"
         # print("service_request", service_request)
 
         try:
@@ -44,6 +45,16 @@ class ServiceRequestRepository:
                                 **service_request.model_dump(mode="json"),
                             },
                             "ConditionExpression": "attribute_not_exists(pk) AND attribute_not_exists(sk)",
+                        }
+                    },
+                    {
+                        "Put": {
+                            "TableName": self.table_name,
+                            "Item": {
+                                "pk": f"Booking#{service_request.booking_id}",
+                                "sk": sk3,
+                                **service_request.model_dump(mode="json"),
+                            },
                         }
                     },
                 ]
@@ -272,15 +283,15 @@ class ServiceRequestRepository:
                 )
 
             user_id = item["user_id"]
+            booking_id = item["booking_id"]
             employee_id = item.get("assigned_to")
             old_status = item["status"]
 
-            new_sk_service = f"Service#{update_status.value}#{service_request_id}"
-            new_sk_user = f"Made#{update_status.value}#{service_request_id}"
+            new_status = update_status.value
 
             transact_items = []
 
-            transact_items.append(
+            transact_items += [
                 {
                     "Delete": {
                         "TableName": self.table_name,
@@ -289,24 +300,21 @@ class ServiceRequestRepository:
                             "sk": f"Service#{old_status}#{service_request_id}",
                         },
                     }
-                }
-            )
-
-            transact_items.append(
+                },
                 {
                     "Put": {
                         "TableName": self.table_name,
                         "Item": {
                             **item,
                             "pk": "ServiceRequests",
-                            "sk": new_sk_service,
-                            "status": update_status.value,
+                            "sk": f"Service#{new_status}#{service_request_id}",
+                            "status": new_status,
                         },
                     }
-                }
-            )
+                },
+            ]
 
-            transact_items.append(
+            transact_items += [
                 {
                     "Delete": {
                         "TableName": self.table_name,
@@ -315,25 +323,41 @@ class ServiceRequestRepository:
                             "sk": f"Made#{old_status}#{service_request_id}",
                         },
                     }
-                }
-            )
-
-            transact_items.append(
+                },
                 {
                     "Put": {
                         "TableName": self.table_name,
                         "Item": {
                             **item,
                             "pk": f"User#{user_id}",
-                            "sk": new_sk_user,
-                            "status": update_status.value,
+                            "sk": f"Made#{new_status}#{service_request_id}",
+                            "status": new_status,
+                        },
+                    }
+                },
+            ]
+
+            transact_items.append(
+                {
+                    "Update": {
+                        "TableName": self.table_name,
+                        "Key": {
+                            "pk": f"Booking#{booking_id}",
+                            "sk": f"Service#{service_request_id}",
+                        },
+                        "UpdateExpression": "SET #s = :new_status",
+                        "ExpressionAttributeNames": {
+                            "#s": "status",
+                        },
+                        "ExpressionAttributeValues": {
+                            ":new_status": new_status,
                         },
                     }
                 }
             )
 
             if employee_id:
-                transact_items.append(
+                transact_items += [
                     {
                         "Delete": {
                             "TableName": self.table_name,
@@ -342,28 +366,25 @@ class ServiceRequestRepository:
                                 "sk": f"Service#{old_status}#{service_request_id}",
                             },
                         }
-                    }
-                )
-
-                transact_items.append(
+                    },
                     {
                         "Put": {
                             "TableName": self.table_name,
                             "Item": {
                                 "pk": f"User#{employee_id}",
-                                "sk": f"Service#{update_status.value}#{service_request_id}",
+                                "sk": f"Service#{new_status}#{service_request_id}",
                                 "service_request_id": service_request_id,
                                 "user_id": user_id,
                                 "room_num": item["room_num"],
-                                "status": update_status.value,
+                                "status": new_status,
                             },
                         }
-                    }
-                )
+                    },
+                ]
 
             self.ddb_client.transact_write_items(TransactItems=transact_items)
 
-        except ClientError:
+        except ClientError as e:
             raise AppException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 message="Failed to update service request status",

@@ -11,10 +11,15 @@ from app.utils import jwt
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    load_dotenv()
-    ddb_resource = boto3.resource("dynamodb")
+    ENV = os.getenv("ENV", "local")
+    if ENV == "local":
+        load_dotenv()
+    ddb_resource = boto3.resource(
+        "dynamodb", region_name=os.getenv("AWS_REGION", "ap-south-1")
+    )
     app.state.ddb_resource = ddb_resource
     app.state.table_name = str(os.getenv("table_name"))
+    app.state.queue_url = str(os.getenv("queue_url"))
     yield
 
 
@@ -52,3 +57,7 @@ def get_ddb_resource(req: Request):
 
 def get_table_name(req: Request):
     return req.app.state.table_name
+
+
+def get_queue_url(req: Request):
+    return req.app.state.queue_url

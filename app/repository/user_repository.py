@@ -66,9 +66,9 @@ class UserRepository:
                 ),
                 Limit=1,
             )
-        except ClientError:
+        except ClientError as e:
             raise AppException(
-                message="Failed to lookup email",
+                message=f"Failed to lookup email and the reason is {e.response}",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 

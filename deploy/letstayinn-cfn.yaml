@@ -1,0 +1,168 @@
+# vpcId = "vpc-016682057abac0f2b"
+# publicSubnets = ["subnet-0a440598ccb4f236a","subnet-0d0b12f6b9571a1f7","subnet-0fc55111edf9579ad"]
+# fastApiEcrImage = "915908749134.dkr.ecr.ap-south-1.amazonaws.com/letstayinn:1.1"
+# command to deploy cfn =  aws cloudformation deploy \                                                                          ~/workspace/letstayinn_python
+  # --stack-name letstayinn-fastapi \
+  # --template-file deploy/letstayinn-cfn.yaml \
+  # --capabilities CAPABILITY_NAMED_IAM \
+  # --parameter-overrides \
+  #   FastApiEcrImage=915908749134.dkr.ecr.ap-south-1.amazonaws.com/letstayinn:1.1 \
+  #   VpcId=vpc-016682057abac0f2b \
+  #   PublicSubnets=subnet-0a440598ccb4f236a,subnet-0d0b12f6b9571a1f7,subnet-0fc55111edf9579ad
+  #
+
+
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "ECS Fargate service with ALB, DynamoDB access, default VPC, and Auto Scaling for Hotel Management System(LetStayInn)"
+
+Parameters:
+  FastApiEcrImage:
+    Type: String
+    Description: "ECR image URI for FastAPI"
+
+  PublicSubnets:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: "Default VPC public subnets"
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: "Default VPC ID"
+
+Resources:
+  AlbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Allow HTTP from anywhere"
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+
+
+  EcsSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Allow traffic from ALB"
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8000
+          ToPort: 8000
+          SourceSecurityGroupId: !Ref AlbSecurityGroup
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+
+
+  AppLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Scheme: internet-facing
+      SecurityGroups:
+        - !Ref AlbSecurityGroup
+      Subnets: !Ref PublicSubnets
+
+  HttpListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref AppLoadBalancer
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref AppTargetGroup
+
+  AppTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Port: 8000
+      Protocol: HTTP
+      TargetType: ip
+      VpcId: !Ref VpcId
+      HealthCheckPath: "/health"
+      HealthCheckProtocol: HTTP
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+
+  EcsCluster:
+    Type: AWS::ECS::Cluster
+
+  TaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+  TaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
+
+  FastApiTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: fastapi-task
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: "256"
+      Memory: "512"
+      ExecutionRoleArn: !GetAtt TaskExecutionRole.Arn
+      TaskRoleArn: !GetAtt TaskRole.Arn
+      ContainerDefinitions:
+        - Name: fastapi
+          Image: !Ref FastApiEcrImage
+          PortMappings:
+            - ContainerPort: 8000
+              Protocol: tcp
+          HealthCheck:
+            Command:
+              ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+            StartPeriod: 60
+
+  FastApiService:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: !Ref EcsCluster
+      TaskDefinition: !Ref FastApiTaskDefinition
+      LaunchType: FARGATE
+      DesiredCount: 1
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+            - !Ref EcsSecurityGroup
+          Subnets: !Ref PublicSubnets
+      LoadBalancers:
+        - TargetGroupArn: !Ref AppTargetGroup
+          ContainerName: "fastapi"
+          ContainerPort: 8000
+    DependsOn:
+      - HttpListener
+
+Outputs:
+  LoadBalancerURL:
+    Description: "FastAPI Endpoint"
+    Value: !GetAtt AppLoadBalancer.DNSName

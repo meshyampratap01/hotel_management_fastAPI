@@ -12,9 +12,18 @@ from app.routes import (
     service_request,
 )
 from app.dependencies import lifespan
+from fastapi.middleware.cors import CORSMiddleware
 
 
 app = FastAPI(lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.exception_handler(AppException)
@@ -39,6 +48,11 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         status_code=422,
         content={"detail": exc.errors()},
     )
+
+
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
 
 
 app.include_router(auth.auth_router)

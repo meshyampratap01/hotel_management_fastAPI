@@ -34,6 +34,9 @@ class AssignedPendingServiceRequestDTO(BaseModel):
     user_id: str = Field(..., description="Customer user ID")
     room_num: int = Field(..., ge=1, description="Room number")
     status: ServiceStatus = Field(..., description="Service request status")
+    room_num: int = Field(..., ge=1, description="Room number")
+    details: str = Field(..., min_length=1, description="Service request details")
+    type: ServiceType = Field(..., description="Service request type")
 
 
 class UpdateServiceRequestStatus(BaseModel):
