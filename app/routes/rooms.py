@@ -10,7 +10,7 @@ from app.services.room_service import RoomService
 room_router = APIRouter(prefix="/rooms")
 
 
-@room_router.get("/", status_code=status.HTTP_200_OK, response_model=APIResponse)
+@room_router.get("", status_code=status.HTTP_200_OK, response_model=APIResponse)
 def get_rooms_by_role(
     room_service: RoomService = Depends(RoomService),
     current_user=Depends(require_roles(Role.GUEST.value, Role.MANAGER.value)),
@@ -32,7 +32,7 @@ def get_rooms_by_role(
         )
 
 
-@room_router.post("/", status_code=status.HTTP_201_CREATED, response_model=APIResponse)
+@room_router.post("", status_code=status.HTTP_201_CREATED, response_model=APIResponse)
 def add_room(
     add_room_request: AddRoomRequest,
     _=Depends(require_roles(Role.MANAGER)),

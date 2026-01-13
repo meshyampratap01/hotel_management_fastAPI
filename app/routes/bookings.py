@@ -41,7 +41,7 @@ def cancel_booking(
     )
 
 
-@booking_router.get("/", status_code=status.HTTP_200_OK, response_model=APIResponse)
+@booking_router.get("", status_code=status.HTTP_200_OK, response_model=APIResponse)
 def get_bookings(
     current_user=Depends(require_roles((Role.GUEST.value))),
     booking_service: BookingService = Depends(BookingService),

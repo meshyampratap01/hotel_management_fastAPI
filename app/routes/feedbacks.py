@@ -9,7 +9,7 @@ from app.services.feedback_service import FeedbackService
 router = APIRouter(prefix="/feedbacks")
 
 
-@router.post("/", status_code=status.HTTP_201_CREATED, response_model=APIResponse)
+@router.post("", status_code=status.HTTP_201_CREATED, response_model=APIResponse)
 def submit_feedback(
     feedback_dto: CreateFeedbackDTO,
     current_user=Depends(require_roles((Role.GUEST.value))),
@@ -22,7 +22,7 @@ def submit_feedback(
     )
 
 
-@router.get("/", status_code=status.HTTP_200_OK, response_model=APIResponse)
+@router.get("", status_code=status.HTTP_200_OK, response_model=APIResponse)
 def get_feedback_by_role(
     current_user=Depends(require_roles(Role.GUEST.value, Role.MANAGER.value)),
     feedback_service: FeedbackService = Depends(FeedbackService),

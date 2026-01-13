@@ -9,7 +9,7 @@ service_request_router = APIRouter(prefix="/service-requests")
 
 
 @service_request_router.post(
-    "/", status_code=status.HTTP_201_CREATED, response_model=APIResponse
+    "", status_code=status.HTTP_201_CREATED, response_model=APIResponse
 )
 def create_service_request(
     create_service_request: CreateServiceRequest,
@@ -24,7 +24,7 @@ def create_service_request(
 
 
 @service_request_router.get(
-    "/", status_code=status.HTTP_200_OK, response_model=APIResponse
+    "", status_code=status.HTTP_200_OK, response_model=APIResponse
 )
 def get_pending_service_request_by_role(
     current_user=Depends(require_roles(Role.MANAGER.value, Role.GUEST.value)),

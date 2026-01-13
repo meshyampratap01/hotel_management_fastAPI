@@ -1,4 +1,4 @@
-# vpcId = "vpc-016682057abac0f2b"
+#pp vpcId = "vpc-016682057abac0f2b"
 # publicSubnets = ["subnet-0a440598ccb4f236a","subnet-0d0b12f6b9571a1f7","subnet-0fc55111edf9579ad"]
 # fastApiEcrImage = "915908749134.dkr.ecr.ap-south-1.amazonaws.com/letstayinn:1.1"
 # command to deploy cfn =  aws cloudformation deploy \                                                                          ~/workspace/letstayinn_python

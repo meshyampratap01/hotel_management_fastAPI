@@ -16,7 +16,7 @@ employee_router = APIRouter(prefix="/employees")
 
 
 @employee_router.post(
-    "/", response_model=APIResponse, status_code=status.HTTP_201_CREATED
+    "", response_model=APIResponse, status_code=status.HTTP_201_CREATED
 )
 def create_employee(
     create_employee_request: CreateEmployeeRequest,
@@ -30,7 +30,7 @@ def create_employee(
     )
 
 
-@employee_router.get("/", response_model=APIResponse, status_code=status.HTTP_200_OK)
+@employee_router.get("", response_model=APIResponse, status_code=status.HTTP_200_OK)
 def get_employees(
     _=Depends(require_roles(Role.MANAGER.value)),
     employee_service: EmployeeService = Depends(EmployeeService),

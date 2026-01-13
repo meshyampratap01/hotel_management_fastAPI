@@ -9,7 +9,7 @@ from app.models.users import Role
 router = APIRouter(prefix="/profile")
 
 
-@router.get("/", status_code=status.HTTP_200_OK, response_model=APIResponse)
+@router.get("", status_code=status.HTTP_200_OK, response_model=APIResponse)
 def get_profile(
     current_user=Depends(
         require_roles(
