@@ -141,6 +141,13 @@ Resources:
             Command:
               ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
             StartPeriod: 60
+          Environment:
+            - name: table_name
+              value: letstayinn_python
+            - name: queue_url
+              value: https://sqs.ap-south-1.amazonaws.com/915908749134/letstayinn-fastapi-service-request-deletion
+            - name: my_secret_key
+              value: MY_SECRET_KEY
 
   FastApiService:
     Type: AWS::ECS::Service

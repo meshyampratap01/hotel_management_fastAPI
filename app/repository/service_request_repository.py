@@ -1,4 +1,4 @@
-from typing import List
+from typing import Any, Dict, List
 
 from boto3.dynamodb.conditions import Key
 from app.app_exception.app_exception import AppException
@@ -20,7 +20,6 @@ class ServiceRequestRepository:
         sk1 = f"Service#{service_request.status.value}#{service_request.id}"
         sk2 = f"Made#{service_request.status.value}#{service_request.id}"
         sk3 = f"Service#{service_request.id}"
-        # print("service_request", service_request)
 
         try:
             self.ddb_client.transact_write_items(
@@ -53,9 +52,13 @@ class ServiceRequestRepository:
                             "Item": {
                                 "pk": f"Booking#{service_request.booking_id}",
                                 "sk": sk3,
-                                **service_request.model_dump(mode="json"),
+                                "service_request_id": service_request.id,
+                                "user_id": service_request.user_id,
+                                "is_assigned": service_request.is_assigned,
+                                "assigned_to": service_request.assigned_to,
+                                "status": service_request.status.value,
                             },
-                        }
+                        },
                     },
                 ]
             )
@@ -389,3 +392,92 @@ class ServiceRequestRepository:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 message="Failed to update service request status",
             )
+
+    def get_service_requests_by_booking(self, booking_id: str) -> List[Dict[str, Any]]:
+        response = self.ddb_client.query(
+            TableName=self.table_name,
+            KeyConditionExpression="pk = :pk AND begins_with(sk, :sk)",
+            ExpressionAttributeValues={
+                ":pk": f"Booking#{booking_id}",
+                ":sk": "Service#",
+            },
+        )
+        return response.get("Items", [])
+
+    def delete_service_requests_by_booking(self, booking_id: str):
+        service_requests = self.get_service_requests_by_booking(booking_id)
+
+        if not service_requests:
+            return  # idempotent
+
+        transact_items = []
+
+        for sr in service_requests:
+            service_request_id = sr["service_request_id"]
+            user_id = sr["user_id"]
+            status_value = sr["status"]
+
+            # 1️⃣ Global service request
+            transact_items.append(
+                {
+                    "Delete": {
+                        "TableName": self.table_name,
+                        "Key": {
+                            "pk": "ServiceRequests",
+                            "sk": f"Service#{status_value}#{service_request_id}",
+                        },
+                    }
+                }
+            )
+
+            # 2️⃣ User who created request
+            transact_items.append(
+                {
+                    "Delete": {
+                        "TableName": self.table_name,
+                        "Key": {
+                            "pk": f"User#{user_id}",
+                            "sk": f"Made#{status_value}#{service_request_id}",
+                        },
+                    }
+                }
+            )
+
+            # 3️⃣ Booking mapping
+            transact_items.append(
+                {
+                    "Delete": {
+                        "TableName": self.table_name,
+                        "Key": {
+                            "pk": f"Booking#{booking_id}",
+                            "sk": f"Service#{service_request_id}",
+                        },
+                    }
+                }
+            )
+
+            # 4️⃣ Assigned employee (ONLY if assigned)
+            if sr.get("is_assigned") and sr.get("assigned_to"):
+                transact_items.append(
+                    {
+                        "Delete": {
+                            "TableName": self.table_name,
+                            "Key": {
+                                "pk": f"User#{sr['assigned_to']}",
+                                "sk": f"Service#{status_value}#{service_request_id}",
+                            },
+                        }
+                    }
+                )
+
+        # DynamoDB limit: 25 operations per transaction
+        for i in range(0, len(transact_items), 25):
+            try:
+                self.ddb_client.transact_write_items(
+                    TransactItems=transact_items[i: i + 25]
+                )
+            except ClientError as e:
+                raise AppException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    message="Failed to delete service requests for booking",
+                )

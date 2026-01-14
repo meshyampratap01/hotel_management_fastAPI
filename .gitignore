@@ -6,3 +6,5 @@ letstayinn
 .coverage
 
 htmlcov
+
+.aws-sam/

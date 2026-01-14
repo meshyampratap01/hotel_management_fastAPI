@@ -114,7 +114,13 @@ class ServiceRequestService:
         self, service_request_id: str, request: assign_service_request_dto
     ) -> None:
         employee_id = request.employee_id
-        _ = self.user_repo.get_user_by_id(employee_id)
+        try:
+            _ = self.user_repo.get_user_by_id(employee_id)
+        except AppException:
+            raise AppException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                message="Employee not found",
+            )
         self.service_request_repo.assign_service_request(
             service_request_id, employee_id
         )

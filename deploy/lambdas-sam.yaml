@@ -1,0 +1,65 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Description: >
+  SAM template with:
+    1) Lambda triggered by an existing SQS queue with SQS poller permissions
+    2) Cron scheduled Lambda
+
+Parameters:
+  ExistingSqsQueueArn:
+    Type: String
+    Description: ARN of the existing SQS queue
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Timeout: 20
+    MemorySize: 128
+
+Resources:
+  QueueTriggeredFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handler.lambda_handler
+      CodeUri: ../lambdas/delete_service_requests/
+      Events:
+        SqsEvent:
+          Type: SQS
+          Properties:
+            Queue: !Ref ExistingSqsQueueArn
+            BatchSize: 10
+            Enabled: true
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: letstayinn_fastapi
+
+
+  DailyScheduledFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handler.lambda_handler
+      CodeUri: ../lambdas/update_completed_booking/
+      Events:
+        DailySchedule:
+          Type: ScheduleV2
+          Properties:
+            Name: DailyRunAt12_05AM
+            Description: "Invoke daily scheduled task"
+            ScheduleExpression: cron(5 0 * * ? *)
+            ScheduleExpressionTimezone: Asia/Kolkata
+            State: ENABLED
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: letstayinn_fastapi
+
+
+Outputs:
+  QueueTriggeredFunctionArn:
+    Description: ARN of SQS triggered Lambda
+    Value: !GetAtt QueueTriggeredFunction.Arn
+
+  DailyScheduledFunctionArn:
+    Description: ARN of daily scheduled Lambda
+    Value: !GetAtt DailyScheduledFunction.Arn
+

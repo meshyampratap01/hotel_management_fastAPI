@@ -1,0 +1,14 @@
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "letstayinn-fastapi-lambdas"
+resolve_s3 = true
+s3_prefix = "letstayinn-fastapi-lambdas"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+disable_rollback = true
+parameter_overrides = "ExistingSqsQueueArn=\"arn:aws:sqs:ap-south-1:915908749134:letstayinn-fastapi-service-request-deletion\""
+image_repositories = []
+
+[default.global.parameters]
+region = "ap-south-1"
