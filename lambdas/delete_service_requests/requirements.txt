@@ -14,3 +14,5 @@ fastapi-cli==0.0.20
 fastapi-cloud-cli==0.8.0
 fastar==0.8.0
 fastjsonschema==2.21.2
+
+letstayinn-package

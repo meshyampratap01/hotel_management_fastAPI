@@ -59,5 +59,6 @@ def get_table_name(req: Request):
     return req.app.state.table_name
 
 
-def get_queue_url(req: Request):
-    return req.app.state.queue_url
+def get_queue_url():
+    queue_url = os.getenv("queue_url")
+    return queue_url

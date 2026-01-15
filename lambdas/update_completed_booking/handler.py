@@ -1,17 +1,18 @@
 from typing import Any, Dict, List
 import boto3
 
-from app.repository.booking_repository import BookingRepository
+from letstayinn_package.booking_repository import BookingRepository
+from mypy_boto3_dynamodb import ServiceResource
 
 
-def getddbresource():
-    return boto3.resource("dynamodb")
+def getddbresource() -> ServiceResource:
+    return boto3.resource("dynamodb", region_name="ap-south-1")
 
 
 def lambda_handler(event, context):
-    ddb_resource = getddbresource()
+    ddb_resource: ServiceResource = getddbresource()
     booking_repository: BookingRepository = BookingRepository(
-        ddb_resource, "letstayinn_fastapi"
+        "letstayinn_fastapi", ddb_resource=ddb_resource
     )
 
     expired_bookings: List[Dict[str, Any]] = booking_repository.scan_expired_bookings()

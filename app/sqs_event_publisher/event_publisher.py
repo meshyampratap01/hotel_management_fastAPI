@@ -3,16 +3,16 @@ import boto3
 from datetime import datetime, timezone
 
 from botocore.utils import ClientError
-from fastapi import Depends, status
+from fastapi import status
 
 from app.app_exception.app_exception import AppException
 from app.dependencies import get_queue_url
 
 
 class BookingEventPublisher:
-    def __init__(self, queue_url=Depends(get_queue_url)):
+    def __init__(self):
         self.sqs = boto3.client("sqs")
-        self.queue_url = queue_url
+        self.queue_url = get_queue_url()
 
     def publish_booking_cancelled(self, booking):
         message = {

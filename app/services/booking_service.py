@@ -8,7 +8,7 @@ from app.dtos.booking_requests import CreateBookingRequest
 from app.models.bookings import Booking, BookingStatus
 from app.repository.booking_repository import BookingRepository
 from app.repository.room_repository import RoomRepository
-from sqs_event_publisher import event_publisher
+from app.sqs_event_publisher.event_publisher import BookingEventPublisher
 
 
 class BookingService:
@@ -81,7 +81,7 @@ class BookingService:
         self.booking_repo.update_booking(booking)
 
         if booking.clean_req or booking.food_req:
-            event_pub = event_publisher.BookingEventPublisher()
+            event_pub = BookingEventPublisher()
             event_pub.publish_booking_cancelled(booking)
 
     def get_active_bookings_by_user(self, user_id: str) -> List[Booking]:
