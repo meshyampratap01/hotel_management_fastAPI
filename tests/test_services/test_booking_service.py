@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from datetime import date, timedelta
 
 from fastapi import status
@@ -86,10 +86,14 @@ class TestBookingService(unittest.TestCase):
         with self.assertRaises(AppException):
             self.service.book_room(self.valid_request, self.valid_user)
 
-    def test_cancel_booking_success(self):
+    @patch("app.services.booking_service.BookingEventPublisher")
+    def test_cancel_booking_success(self, mock_event_publisher_cls):
         booking = MagicMock()
         booking.status = BookingStatus.Booking_Status_Booked
         booking.room_num = 101
+
+        mock_event_publisher = MagicMock()
+        mock_event_publisher_cls.return_value = mock_event_publisher
 
         self.mock_booking_repo.get_booking_by_ID.return_value = booking
 
@@ -99,6 +103,7 @@ class TestBookingService(unittest.TestCase):
 
         self.mock_room_repo.update_room_availability.assert_called_once_with(101, True)
         self.mock_booking_repo.update_booking.assert_called_once_with(booking)
+        mock_event_publisher.publish_booking_cancelled.assert_called_once_with(booking)
 
     def test_cancel_booking_already_cancelled(self):
         booking = MagicMock()

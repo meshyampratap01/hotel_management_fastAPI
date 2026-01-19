@@ -95,7 +95,7 @@ Resources:
       LoadBalancerArn: !Ref AppLoadBalancer
       Port: 443
       Protocol: HTTPS
-      Certificate:
+      Certificates:
         - CertificateArn: !Ref AcmCertificateArn
       DefaultActions:
         - Type: forward
@@ -144,6 +144,7 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
         - arn:aws:iam::aws:policy/AmazonSQSFullAccess
+        - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess_v2
 
   FastApiLogGroup:
     Type: AWS::Logs::LogGroup
@@ -154,7 +155,7 @@ Resources:
   FastApiTaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
-      Family: fastapi-task
+      Family: letstayinn_fastapi-task
       NetworkMode: awsvpc
       RequiresCompatibilities:
         - FARGATE
@@ -183,7 +184,7 @@ Resources:
 
           Environment:
             - name: table_name
-              value: letstayinn-fastapi
+              value: letstayinn_fastapi
             - name: queue_url
               value: https://sqs.ap-south-1.amazonaws.com/915908749134/letstayinn-fastapi-service-request-deletion
             - name: my_secret_key

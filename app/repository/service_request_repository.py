@@ -125,7 +125,6 @@ class ServiceRequestRepository:
                     "sk": f"Service#Pending#{service_request_id}",
                 }
             )
-            print(response)
 
             item = response.get("Item")
             if not item:
@@ -135,8 +134,6 @@ class ServiceRequestRepository:
                 )
 
             user_id = item["user_id"]
-            print(user_id)
-            print(employee_id)
 
             self.ddb_client.transact_write_items(
                 TransactItems=[
@@ -201,7 +198,6 @@ class ServiceRequestRepository:
             )
 
         except ClientError as e:
-            print(e.response)
             code = e.response.get("Error", {}).get("Code")
 
             if code == "TransactionCanceledException":
@@ -217,7 +213,6 @@ class ServiceRequestRepository:
 
     def get_assigned_service_requests(self, employee_id: str) -> List[ServiceRequest]:
         try:
-            print("got into function")
             response = self.table.query(
                 KeyConditionExpression=(
                     Key("pk").eq(f"User#{employee_id}")
@@ -226,7 +221,6 @@ class ServiceRequestRepository:
             )
 
             items = response.get("Items", [])
-            print(items)
 
             service_requests: List[ServiceRequest] = []
 
@@ -387,7 +381,7 @@ class ServiceRequestRepository:
 
             self.ddb_client.transact_write_items(TransactItems=transact_items)
 
-        except ClientError as e:
+        except ClientError:
             raise AppException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 message="Failed to update service request status",

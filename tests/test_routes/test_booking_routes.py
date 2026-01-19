@@ -1,3 +1,4 @@
+from datetime import date, timedelta
 import unittest
 from unittest.mock import Mock, patch
 from fastapi.testclient import TestClient
@@ -44,8 +45,8 @@ class TestBookingRoutes(unittest.TestCase):
 
         payload = {
             "room_number": 101,
-            "check_in_date": "2026-01-15",
-            "check_out_date": "2026-01-17",
+            "check_in_date": date.today().isoformat(),
+            "check_out_date": (date.today() + timedelta(days=1)).isoformat(),
         }
 
         response = self.client.post("/bookings/bookRoom", json=payload)
@@ -101,4 +102,3 @@ class TestBookingRoutes(unittest.TestCase):
         self.mock_booking_service.get_active_bookings_by_user.assert_called_once_with(
             "user-123"
         )
-

@@ -46,7 +46,6 @@ def get_bookings(
     current_user=Depends(require_roles((Role.GUEST.value))),
     booking_service: BookingService = Depends(BookingService),
 ):
-    print("entered")
     bookings = booking_service.get_active_bookings_by_user(current_user.get("sub"))
     return APIResponse(
         status_code=status.HTTP_200_OK,
